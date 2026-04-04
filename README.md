@@ -103,6 +103,84 @@ The generated HTML report includes:
 - **Pan and zoom** — drag to pan, scroll to zoom, "Fit" button to reset
 - **Drag-and-drop** — drop a `.jsonl` file onto the landing page (when opened directly)
 
+## Embedding in an Astro Site
+
+This repo now exposes an embeddable Vue entry for Astro/Vite consumers through `visualizer` → `src/embed.ts`.
+
+### Install from GitHub or a local sibling repo
+
+For local side-by-side development:
+
+```bash
+npm install file:../visualizer
+```
+
+For CI or pinned production builds after tagging a release in GitHub:
+
+```bash
+npm install github:mluparu/visualizer#v1.0.0
+```
+
+> Even when the dependency comes from `github:mluparu/visualizer`, the import stays `visualizer` because that is the package name exposed by this repo.
+
+### Public component API
+
+`TaskVizEmbed` accepts the following props:
+
+| Prop | Type | Purpose |
+|---|---|---|
+| `jsonlPath` | `string` | Path/URL to a `.jsonl` file served by the host site |
+| `jsonlText` | `string` | Inline JSONL text; takes precedence over `jsonlPath` |
+| `theme` | `ThemeName` | Initial theme: `midnight`, `light`, `ocean`, `forest`, or `sunset` |
+| `defaultMode` | `PlaybackMode` | Initial playback mode: `preview` or `reveal` |
+| `autoplayWhenVisible` | `boolean` | Start playback automatically when the component enters the viewport |
+| `height` | `string` | CSS height for the embed, e.g. `720px` or `70vh` |
+| `showChrome` | `boolean` | Show or hide the embed header, timeline controls, and inspector chrome |
+| `showThemePicker` | `boolean` | Show or hide the theme picker in the embed chrome |
+| `showCloseButton` | `boolean` | Show a close button in the top-right chrome |
+| `fileLabel` | `string` | Optional label shown in the header |
+
+### Astro example
+
+In the Astro site, keep the workflow files in `public/taskviz/` and pass the path into the component.
+
+```astro
+---
+import { TaskVizEmbed } from 'visualizer'
+
+const workflowPath = `${import.meta.env.BASE_URL}taskviz/ci-pipeline.jsonl`
+---
+
+<TaskVizEmbed
+  client:visible
+  jsonlPath={workflowPath}
+  theme="midnight"
+  defaultMode="reveal"
+  autoplayWhenVisible={true}
+  height="720px"
+  showThemePicker={false}
+/>
+```
+
+For a cleaner article-style presentation, you can hide most of the UI chrome entirely:
+
+> `showThemePicker` and `showCloseButton` only apply when `showChrome` is enabled.
+
+```astro
+<TaskVizEmbed
+  client:visible
+  jsonlPath={workflowPath}
+  theme="midnight"
+  defaultMode="reveal"
+  autoplayWhenVisible={true}
+  height="640px"
+  showChrome={false}
+  showThemePicker={false}
+/>
+```
+
+> If you prefer, the Astro repo can still wrap this in a local `src/components/TaskViz.astro` file and pass through the props from there.
+
 ## Development
 
 ```bash
@@ -110,6 +188,23 @@ npm install
 npm run dev          # Vite dev server at http://localhost:5173
 npm run build        # Production build → dist/index.html (single file)
 npm run typecheck    # TypeScript check
+npm run verify       # Local release/CI check: typecheck + build + npm pack --dry-run
+```
+
+## Publishing to GitHub
+
+Once the repo is live at `github.com/mluparu/visualizer`, a simple release flow is:
+
+```bash
+git push -u origin main
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Then the Astro site can consume the pinned tag with:
+
+```bash
+npm install github:mluparu/visualizer#v1.0.0
 ```
 
 ## Sample Files
