@@ -5,7 +5,7 @@ Use **one deployed Astro site** as the GitHub Pages host, but keep the visualize
 ### Track 1 — Actions in the `visualizer` repo
 
 1. **Extract a reusable embeddable entry point**
-   - Create a shared Vue component such as `d:\blog\visualizer\src\components\TaskVizEmbed.vue` that contains the loaded-session experience currently inside `App.vue`.
+   - Create a shared Vue component such as `visualizer\src\components\TaskVizEmbed.vue` that contains the loaded-session experience currently inside `App.vue`.
    - Move the current `loadWorkflow()` + layout pipeline from `App.vue` into the embed component or a small composable so it can be driven entirely by props.
    - Keep `App.vue` as the standalone CLI/demo shell, but have it reuse the shared embed logic where practical so there is one core implementation.
 
@@ -29,8 +29,8 @@ Use **one deployed Astro site** as the GitHub Pages host, but keep the visualize
 
 5. **Package the repo for external consumption**
    - Add a stable public export from this repo, ideally through an entry such as `src/embed.ts`, that re-exports `TaskVizEmbed.vue` and any supported prop types.
-   - Update `d:\blog\visualizer\package.json` exports so the Astro repo can import from the package cleanly, e.g. `import { TaskVizEmbed } from 'taskviz'`.
-   - Adjust `d:\blog\visualizer\vite.config.ts` only as needed to support a consumable package build alongside the current standalone app/CLI build.
+   - Update `visualizer\package.json` exports so the Astro repo can import from the package cleanly, e.g. `import { TaskVizEmbed } from 'taskviz'`.
+   - Adjust `visualizer\vite.config.ts` only as needed to support a consumable package build alongside the current standalone app/CLI build.
 
 6. **Publish the visualizer repo to GitHub and tag a release**
    - Push the updated repo to GitHub manually.
@@ -61,17 +61,17 @@ Use **one deployed Astro site** as the GitHub Pages host, but keep the visualize
    - This keeps updates explicit, versioned, and reproducible without copying Vue files between repos.
 
 **Relevant files — `visualizer` repo**
-- `d:\blog\visualizer\src\App.vue` — current all-in-one shell; source of `workflow`, `layout`, `playbackMode`, and `loadWorkflow()`.
-- `d:\blog\visualizer\src\components\TaskVizEmbed.vue` — new embeddable Vue component to expose publicly.
-- `d:\blog\visualizer\src\composables\usePlayback.ts` — reusable playback logic for autoplay.
-- `d:\blog\visualizer\src\lib\theme.ts` — `ThemeName`, `themeOptions`, `currentThemeName`, and `setTheme()`.
-- `d:\blog\visualizer\src\lib\parser.ts` — existing JSONL parsing/validation pipeline.
-- `d:\blog\visualizer\src\lib\graphLayout.ts` — existing ELK graph build/layout pipeline.
-- `d:\blog\visualizer\src\components\GraphView.vue` — already respects the `playbackMode` prop.
-- `d:\blog\visualizer\src\components\Timeline.vue` — already exposes the preview/reveal mode toggle.
-- `d:\blog\visualizer\src\main.ts` — standalone mount for the current full-page app.
-- `d:\blog\visualizer\package.json` — add package exports for the embeddable entry point.
-- `d:\blog\visualizer\vite.config.ts` — adjust only as needed to support the consumable package build.
+- `visualizer\src\App.vue` — current all-in-one shell; source of `workflow`, `layout`, `playbackMode`, and `loadWorkflow()`.
+- `visualizer\src\components\TaskVizEmbed.vue` — new embeddable Vue component to expose publicly.
+- `visualizer\src\composables\usePlayback.ts` — reusable playback logic for autoplay.
+- `visualizer\src\lib\theme.ts` — `ThemeName`, `themeOptions`, `currentThemeName`, and `setTheme()`.
+- `visualizer\src\lib\parser.ts` — existing JSONL parsing/validation pipeline.
+- `visualizer\src\lib\graphLayout.ts` — existing ELK graph build/layout pipeline.
+- `visualizer\src\components\GraphView.vue` — already respects the `playbackMode` prop.
+- `visualizer\src\components\Timeline.vue` — already exposes the preview/reveal mode toggle.
+- `visualizer\src\main.ts` — standalone mount for the current full-page app.
+- `visualizer\package.json` — add package exports for the embeddable entry point.
+- `visualizer\vite.config.ts` — adjust only as needed to support the consumable package build.
 
 **Relevant files — Astro site repo**
 - `astro-site/package.json` — consume the visualizer via a GitHub dependency pinned to a tag.
@@ -80,8 +80,8 @@ Use **one deployed Astro site** as the GitHub Pages host, but keep the visualize
 - `astro-site/astro.config.mjs` — Astro GitHub Pages `site`/`base` + Vue integration.
 
 **Verification**
-1. In `d:\blog\visualizer`, run `npm run typecheck` after the refactor to confirm the extracted component and exports remain type-safe.
-2. In `d:\blog\visualizer`, run `npm run build` to ensure the existing standalone/CLI build still succeeds.
+1. In `visualizer`, run `npm run typecheck` after the refactor to confirm the extracted component and exports remain type-safe.
+2. In `visualizer`, run `npm run build` to ensure the existing standalone/CLI build still succeeds.
 3. After publishing to GitHub, confirm the repo tag intended for Astro consumption exists and points to the correct commit.
 4. Later, in the Astro site repo, install the dependency from the visualizer GitHub repo and verify the import resolves correctly.
 5. Run the Astro local dev server and verify four scenarios:
