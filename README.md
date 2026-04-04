@@ -58,17 +58,19 @@ Each line in the log file is one JSON object representing a task:
 | `prompt_cache_key` | `string` | | Name of a predecessor task whose prompt was reused for caching |
 | `prompt_tokens` | `number` | | Total prompt tokens for this task (must pair with `cached_tokens`) |
 | `cached_tokens` | `number` | | Cached tokens reused from prompt cache (must be ≤ `prompt_tokens`) |
+| `cost` | `number` | | Optional per-task dollar estimate displayed in the lower-left corner |
+| `ttft` | `number` | | Optional time-to-first-token in seconds; must be ≤ the task duration |
 
 ### Minimal Example
 
 ```jsonl
-{"taskId":"A","name":"Initialize","status":"completed","startTime":0,"endTime":3,"dependsOn":[]}
-{"taskId":"B","name":"Process Left","status":"completed","startTime":3,"endTime":7,"dependsOn":["A"],"prompt_cache_key":"A","prompt_tokens":2500,"cached_tokens":2000}
-{"taskId":"C","name":"Process Right","status":"completed","startTime":3,"endTime":6,"dependsOn":["A"],"prompt_cache_key":"A","prompt_tokens":2500,"cached_tokens":2000}
-{"taskId":"D","name":"Merge","status":"completed","startTime":7,"endTime":10,"dependsOn":["B","C"],"prompt_cache_key":"B","prompt_tokens":5000,"cached_tokens":2500}
+{"taskId":"A","name":"Initialize","status":"completed","startTime":0,"endTime":3,"dependsOn":[],"cost":0.18,"ttft":0.6}
+{"taskId":"B","name":"Process Left","status":"completed","startTime":3,"endTime":7,"dependsOn":["A"],"prompt_cache_key":"A","prompt_tokens":2500,"cached_tokens":2000,"cost":0.46,"ttft":1.1}
+{"taskId":"C","name":"Process Right","status":"completed","startTime":3,"endTime":6,"dependsOn":["A"],"prompt_cache_key":"A","prompt_tokens":2500,"cached_tokens":2000,"cost":0.34,"ttft":0.9}
+{"taskId":"D","name":"Merge","status":"completed","startTime":7,"endTime":10,"dependsOn":["B","C"],"prompt_cache_key":"B","prompt_tokens":5000,"cached_tokens":2500,"cost":0.71,"ttft":1.4}
 ```
 
-This renders a diamond DAG: A forks into B and C (parallel), which join at D. Tasks B and C show 80% prompt cache hit rates from A, rendered as progress bars inside each node.
+This renders a diamond DAG: A forks into B and C (parallel), which join at D. Tasks B and C show 80% prompt cache hit rates from A, while the lower corners display estimated task cost plus duration and TTFT.
 
 ### How Forks and Joins Work
 
@@ -88,6 +90,7 @@ The generated HTML report includes:
 - **Status colors** — green (completed), red (failed), blue (running), gray (pending), dim (skipped)
 - **Fork/join diamonds** — automatically inserted at parallel branch/merge points
 - **Prompt cache visualization** — tasks with `prompt_tokens`/`cached_tokens` show a progress bar with cache hit percentage inside the node; `prompt_cache_key` appears as a subtitle
+- **Per-task metrics** — optional `cost` appears in the lower-left corner while duration and `TTFT` appear in the lower-right corner of each task card
 - **Click to inspect** — select any node to open the inspector panel with timing, dependencies, cache stats, error details, and metadata
 - **Pan and zoom** — drag to pan, scroll to zoom, "Fit" button to reset
 - **Drag-and-drop** — drop a `.jsonl` file onto the landing page (when opened directly)

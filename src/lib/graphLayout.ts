@@ -7,6 +7,10 @@ function makeEdge(id: string, source: string, target: string, activationTime: nu
   return { id, sources: [source], targets: [target], activationTime }
 }
 
+function metricFooterHeight(node: { ttft?: number }): number {
+  return node.ttft != null ? 30 : 18
+}
+
 export function buildGraphData(workflow: ParsedWorkflow): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const { tasks, successors, predecessors } = workflow
   if (tasks.length === 0) return { nodes: [], edges: [] }
@@ -121,8 +125,8 @@ export function buildGraphData(workflow: ParsedWorkflow): { nodes: GraphNode[]; 
     const children = childrenOf.get(t.taskId)
     const isCompound = !!children && children.length > 0
 
-    // Dynamic height: base 52 + 14 for cache key + 36 for token bar
-    let taskHeight = 52
+    // Dynamic height: base body + footer metrics + optional cache/token details
+    let taskHeight = 52 + metricFooterHeight(t)
     if (t.prompt_cache_key) taskHeight += 14
     if (t.prompt_tokens != null) taskHeight += 36
 
@@ -130,7 +134,7 @@ export function buildGraphData(workflow: ParsedWorkflow): { nodes: GraphNode[]; 
     let compoundHeight = 60
     if (isCompound) {
       for (const child of children!) {
-        let ch = 36
+        let ch = 36 + metricFooterHeight(child)
         if (child.prompt_cache_key) ch += 14
         if (child.prompt_tokens != null) ch += 36
         compoundHeight += ch + 8
@@ -156,11 +160,13 @@ export function buildGraphData(workflow: ParsedWorkflow): { nodes: GraphNode[]; 
       prompt_cache_key: t.prompt_cache_key,
       prompt_tokens: t.prompt_tokens,
       cached_tokens: t.cached_tokens,
+      cost: t.cost,
+      ttft: t.ttft,
     }
 
     if (isCompound) {
       node.children = children!.map(child => {
-        let childHeight = 36
+        let childHeight = 36 + metricFooterHeight(child)
         if (child.prompt_cache_key) childHeight += 14
         if (child.prompt_tokens != null) childHeight += 36
         return {
@@ -180,6 +186,8 @@ export function buildGraphData(workflow: ParsedWorkflow): { nodes: GraphNode[]; 
           prompt_cache_key: child.prompt_cache_key,
           prompt_tokens: child.prompt_tokens,
           cached_tokens: child.cached_tokens,
+          cost: child.cost,
+          ttft: child.ttft,
         }
       })
     }

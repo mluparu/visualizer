@@ -150,6 +150,27 @@ function taskBaseY(node: GraphNode): number {
   return node.prompt_cache_key || node.prompt_tokens != null ? 18 : node.height / 2
 }
 
+function formatCompactNumber(value: number, decimals: number): string {
+  return value
+    .toFixed(decimals)
+    .replace(/\.0+$/, '')
+    .replace(/(\.\d*[1-9])0+$/, '$1')
+}
+
+function formatDuration(node: GraphNode): string {
+  return `${formatCompactNumber(Math.max(0, node.endTime - node.startTime), 1)}s`
+}
+
+function formatTtft(node: GraphNode): string {
+  if (node.ttft == null) return ''
+  return `TTFT: ${formatCompactNumber(node.ttft, 1)}s`
+}
+
+function formatCost(node: GraphNode): string {
+  if (node.cost == null) return ''
+  return `$${formatCompactNumber(node.cost, 2)}`
+}
+
 const viewBoxStr = computed(() => {
   const vb = viewBox.value
   return `${vb.x} ${vb.y} ${vb.width} ${vb.height}`
@@ -264,6 +285,31 @@ const viewBoxStr = computed(() => {
         >
           {{ node.label }}
         </text>
+        <text v-if="node.cost != null"
+          :x="12"
+          :y="node.height - (node.ttft != null ? 18 : 10)"
+          :fill="theme.fg.primary"
+          :font-size="theme.fontSize.md"
+          :font-family="theme.font.mono"
+          font-weight="700"
+        >{{ formatCost(node) }}</text>
+        <text
+          :x="node.width - 12"
+          :y="node.height - (node.ttft != null ? 18 : 10)"
+          text-anchor="end"
+          :fill="theme.fg.primary"
+          :font-size="theme.fontSize.md"
+          :font-family="theme.font.mono"
+          font-weight="700"
+        >{{ formatDuration(node) }}</text>
+        <text v-if="node.ttft != null"
+          :x="node.width - 12"
+          :y="node.height - 6"
+          text-anchor="end"
+          :fill="theme.fg.secondary"
+          :font-size="theme.fontSize.xs"
+          :font-family="theme.font.mono"
+        >{{ formatTtft(node) }}</text>
         <!-- Child nodes inside compound -->
         <g v-if="node.children" v-for="child in node.children" :key="child.id"
           v-show="isNodeVisible(child)"
@@ -337,6 +383,31 @@ const viewBoxStr = computed(() => {
               :font-family="theme.font.mono"
             >cached_tokens: {{ child.cached_tokens }}</text>
           </g>
+          <text v-if="child.cost != null"
+            :x="6"
+            :y="child.height - (child.ttft != null ? 16 : 8)"
+            :fill="theme.fg.primary"
+            :font-size="9"
+            :font-family="theme.font.mono"
+            font-weight="700"
+          >{{ formatCost(child) }}</text>
+          <text
+            :x="child.width - 6"
+            :y="child.height - (child.ttft != null ? 16 : 8)"
+            text-anchor="end"
+            :fill="theme.fg.primary"
+            :font-size="9"
+            :font-family="theme.font.mono"
+            font-weight="700"
+          >{{ formatDuration(child) }}</text>
+          <text v-if="child.ttft != null"
+            :x="child.width - 6"
+            :y="child.height - 4"
+            text-anchor="end"
+            :fill="theme.fg.secondary"
+            :font-size="7"
+            :font-family="theme.font.mono"
+          >{{ formatTtft(child) }}</text>
         </g>
       </template>
 
@@ -433,6 +504,31 @@ const viewBoxStr = computed(() => {
             :font-family="theme.font.mono"
           >cached_tokens: {{ node.cached_tokens }}</text>
         </g>
+        <text v-if="node.cost != null"
+          :x="10"
+          :y="node.height - (node.ttft != null ? 18 : 10)"
+          :fill="theme.fg.primary"
+          :font-size="theme.fontSize.md"
+          :font-family="theme.font.mono"
+          font-weight="700"
+        >{{ formatCost(node) }}</text>
+        <text
+          :x="node.width - 10"
+          :y="node.height - (node.ttft != null ? 18 : 10)"
+          text-anchor="end"
+          :fill="theme.fg.primary"
+          :font-size="theme.fontSize.md"
+          :font-family="theme.font.mono"
+          font-weight="700"
+        >{{ formatDuration(node) }}</text>
+        <text v-if="node.ttft != null"
+          :x="node.width - 10"
+          :y="node.height - 6"
+          text-anchor="end"
+          :fill="theme.fg.secondary"
+          :font-size="theme.fontSize.xs"
+          :font-family="theme.font.mono"
+        >{{ formatTtft(node) }}</text>
       </template>
     </g>
 

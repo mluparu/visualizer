@@ -22,6 +22,8 @@
 | `prompt_cache_key` | `string` | Name of a predecessor task whose prompt was reused for caching. Rendered as a subtitle under the task name. |
 | `prompt_tokens` | `number` | Total prompt tokens for this task. Must be specified together with `cached_tokens`. |
 | `cached_tokens` | `number` | Number of cached tokens reused from the prompt cache. Must be ≤ `prompt_tokens`. |
+| `cost` | `number` | Optional dollar estimate for the task. Rendered in the lower-left corner of the task card. |
+| `ttft` | `number` | Optional time-to-first-token in seconds. Must be ≤ the task duration and is rendered below the duration label. |
 
 ## Validation Rules
 
@@ -34,18 +36,20 @@
 7. **Status values**: Must be exactly one of the five enum values listed above.
 8. **Token co-occurrence**: If `prompt_tokens` is specified, `cached_tokens` must also be specified, and vice versa.
 9. **Token constraint**: `cached_tokens` must be ≤ `prompt_tokens`.
+10. **Cost constraint**: If `cost` is present, it must be a non-negative number.
+11. **TTFT constraint**: If `ttft` is present, it must be a non-negative number and `ttft <= endTime - startTime`.
 
 ## Complete Annotated Example
 
 ```jsonl
-{"taskId":"checkout","name":"Checkout Code","status":"completed","startTime":0,"endTime":1.5,"dependsOn":[],"group":"setup","metadata":{"branch":"main"}}
-{"taskId":"build","name":"Build Project","status":"completed","startTime":1.5,"endTime":6.0,"dependsOn":["checkout"],"group":"build","prompt_cache_key":"checkout","prompt_tokens":2048,"cached_tokens":1536}
-{"taskId":"test","name":"Run Tests","status":"failed","startTime":6.0,"endTime":12.0,"dependsOn":["build"],"group":"test","error":"3 tests failed: test_auth, test_payment, test_export","metadata":{"tests":150,"passed":147,"failed":3},"prompt_cache_key":"build","prompt_tokens":3200,"cached_tokens":2048}
-{"taskId":"deploy","name":"Deploy","status":"skipped","startTime":12.0,"endTime":12.0,"dependsOn":["test"],"group":"deploy"}
+{"taskId":"checkout","name":"Checkout Code","status":"completed","startTime":0,"endTime":1.5,"dependsOn":[],"group":"setup","metadata":{"branch":"main"},"cost":0.08,"ttft":0.3}
+{"taskId":"build","name":"Build Project","status":"completed","startTime":1.5,"endTime":6.0,"dependsOn":["checkout"],"group":"build","prompt_cache_key":"checkout","prompt_tokens":2048,"cached_tokens":1536,"cost":0.42,"ttft":0.9}
+{"taskId":"test","name":"Run Tests","status":"failed","startTime":6.0,"endTime":12.0,"dependsOn":["build"],"group":"test","error":"3 tests failed: test_auth, test_payment, test_export","metadata":{"tests":150,"passed":147,"failed":3},"prompt_cache_key":"build","prompt_tokens":3200,"cached_tokens":2048,"cost":0.73,"ttft":1.4}
+{"taskId":"deploy","name":"Deploy","status":"skipped","startTime":12.0,"endTime":12.0,"dependsOn":["test"],"group":"deploy","cost":0}
 ```
 
 **Reading this example:**
 - `checkout` is a root task (empty `dependsOn`), runs from 0s to 1.5s
-- `build` starts at 1.5s (= checkout's endTime), depends on checkout, reuses 1536 of 2048 prompt tokens from checkout (75% cache hit)
-- `test` starts at 6.0s (= build's endTime), fails with an error message, reuses 2048 of 3200 prompt tokens from build (64% cache hit)
-- `deploy` is skipped because its dependency (`test`) failed; startTime = endTime = 12.0s
+- `build` starts at 1.5s (= checkout's endTime), depends on checkout, reuses 1536 of 2048 prompt tokens from checkout (75% cache hit), and records both `cost` and `ttft`
+- `test` starts at 6.0s (= build's endTime), fails with an error message, reuses 2048 of 3200 prompt tokens from build (64% cache hit), and still reports its partial cost/TTFT
+- `deploy` is skipped because its dependency (`test`) failed; startTime = endTime = 12.0s, so it has no `ttft`

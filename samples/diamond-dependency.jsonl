@@ -1,4 +1,4 @@
-{"taskId":"A","name":"Initialize","status":"completed","startTime":0,"endTime":3.0,"dependsOn":[]}
-{"taskId":"B","name":"Process Left","status":"completed","startTime":3.0,"endTime":7.5,"dependsOn":["A"],"metadata":{"path":"left"},"prompt_cache_key":"A","prompt_tokens":2500,"cached_tokens":2000}
-{"taskId":"C","name":"Process Right","status":"completed","startTime":3.0,"endTime":6.0,"dependsOn":["A"],"metadata":{"path":"right"},"prompt_cache_key":"A","prompt_tokens":2500,"cached_tokens":2000}
-{"taskId":"D","name":"Merge Results","status":"completed","startTime":7.5,"endTime":10.0,"dependsOn":["B","C"],"metadata":{"mergeStrategy":"concat"},"prompt_cache_key":"B","prompt_tokens":5000,"cached_tokens":2500}
+{"taskId":"A","name":"Initialize","status":"completed","startTime":0,"endTime":3.0,"dependsOn":[],"cost":0.14,"ttft":1.2}
+{"taskId":"B","name":"Process Left","status":"completed","startTime":3.0,"endTime":7.5,"dependsOn":["A"],"metadata":{"path":"left"},"prompt_cache_key":"A","prompt_tokens":2500,"cached_tokens":2000,"cost":0.27,"ttft":1.8}
+{"taskId":"C","name":"Process Right","status":"completed","startTime":3.0,"endTime":6.0,"dependsOn":["A"],"metadata":{"path":"right"},"prompt_cache_key":"A","prompt_tokens":2500,"cached_tokens":2000,"cost":0.2,"ttft":1.2}
+{"taskId":"D","name":"Merge Results","status":"completed","startTime":7.5,"endTime":10.0,"dependsOn":["B","C"],"metadata":{"mergeStrategy":"concat"},"prompt_cache_key":"B","prompt_tokens":5000,"cached_tokens":2500,"cost":0.23,"ttft":1.0}

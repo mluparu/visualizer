@@ -2,13 +2,19 @@ import type { TaskEvent, TaskStatus, ParsedWorkflow, WorkflowMetadata } from './
 
 const VALID_STATUSES: TaskStatus[] = ['pending', 'running', 'completed', 'failed', 'skipped']
 
-function isISOString(value: unknown): boolean {
+function isISOString(value: unknown): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)
 }
 
 function isoToSeconds(value: string, minEpoch: number): number {
   const ms = new Date(value).getTime()
   return (ms - minEpoch) / 1000
+}
+
+function toComparableSeconds(value: unknown): number | null {
+  if (typeof value === 'number') return value
+  if (isISOString(value)) return new Date(value).getTime() / 1000
+  return null
 }
 
 function validateTask(raw: Record<string, unknown>, lineNum: number): TaskEvent {
@@ -20,6 +26,31 @@ function validateTask(raw: Record<string, unknown>, lineNum: number): TaskEvent 
   if (typeof raw.startTime !== 'number' && !isISOString(raw.startTime)) errors.push('startTime must be a number or ISO-8601 string')
   if (typeof raw.endTime !== 'number' && !isISOString(raw.endTime)) errors.push('endTime must be a number or ISO-8601 string')
   if (!Array.isArray(raw.dependsOn)) errors.push('dependsOn must be an array')
+
+  const startSeconds = toComparableSeconds(raw.startTime)
+  const endSeconds = toComparableSeconds(raw.endTime)
+  const taskDuration = startSeconds != null && endSeconds != null ? endSeconds - startSeconds : null
+  if (taskDuration != null && taskDuration < 0) {
+    errors.push('endTime must be >= startTime')
+  }
+
+  const hasCost = typeof raw.cost === 'number'
+  const hasTtft = typeof raw.ttft === 'number'
+  if (raw.cost != null && !hasCost) {
+    errors.push('cost must be a number')
+  }
+  if (hasCost && (raw.cost as number) < 0) {
+    errors.push('cost must be >= 0')
+  }
+  if (raw.ttft != null && !hasTtft) {
+    errors.push('ttft must be a number')
+  }
+  if (hasTtft && (raw.ttft as number) < 0) {
+    errors.push('ttft must be >= 0')
+  }
+  if (hasTtft && taskDuration != null && (raw.ttft as number) > taskDuration) {
+    errors.push('ttft must be <= task duration')
+  }
 
   // Cross-field validation for prompt cache fields
   const hasPromptTokens = typeof raw.prompt_tokens === 'number'
@@ -54,6 +85,8 @@ function validateTask(raw: Record<string, unknown>, lineNum: number): TaskEvent 
     prompt_cache_key: typeof raw.prompt_cache_key === 'string' ? raw.prompt_cache_key : undefined,
     prompt_tokens: hasPromptTokens ? raw.prompt_tokens as number : undefined,
     cached_tokens: hasCachedTokens ? raw.cached_tokens as number : undefined,
+    cost: hasCost ? raw.cost as number : undefined,
+    ttft: hasTtft ? raw.ttft as number : undefined,
   }
 }
 

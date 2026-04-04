@@ -22,6 +22,10 @@ function getDuration(node: GraphNode): string {
   return formatTime(node.endTime - node.startTime)
 }
 
+function formatCost(cost: number): string {
+  return `$${cost.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1')}`
+}
+
 function getDependencyNames(node: GraphNode): string[] {
   if (!node.dependsOn || node.dependsOn.length === 0) return []
   return node.dependsOn.map(id => {
@@ -75,6 +79,10 @@ function getDependencyNames(node: GraphNode): string[] {
         <span>{{ formatTime(node.endTime) }}</span>
         <span :style="{ color: theme.fg.dim }">Duration</span>
         <span>{{ getDuration(node) }}</span>
+        <span v-if="node.ttft != null" :style="{ color: theme.fg.dim }">TTFT</span>
+        <span v-if="node.ttft != null">{{ formatTime(node.ttft) }}</span>
+        <span v-if="node.cost != null" :style="{ color: theme.fg.dim }">Cost</span>
+        <span v-if="node.cost != null">{{ formatCost(node.cost) }}</span>
       </div>
     </div>
 

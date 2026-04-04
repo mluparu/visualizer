@@ -19,7 +19,7 @@ Generate valid JSONL files that simulate workflow task execution for visualizati
 
 See the full schema at [references/schema.md](./references/schema.md).
 
-Each line is one JSON object with these required fields: `taskId`, `name`, `status`, `startTime`, `endTime`, `dependsOn`. Optional fields include `prompt_cache_key`, `prompt_tokens`, and `cached_tokens` for prompt caching metadata.
+Each line is one JSON object with these required fields: `taskId`, `name`, `status`, `startTime`, `endTime`, `dependsOn`. Optional fields include `prompt_cache_key`, `prompt_tokens`, `cached_tokens`, `cost`, and `ttft` for richer execution metadata.
 
 ## Procedure
 
@@ -52,6 +52,8 @@ Follow these steps exactly when generating a workflow JSONL file:
    - Add `metadata` with contextual info for realism (e.g., `{"cpu": "2 cores", "tests": 142}`)
    - Use `prompt_cache_key` (string) to indicate which predecessor task's prompt was reused for caching. Usually the name of a task in `dependsOn`.
    - Use `prompt_tokens` (number) and `cached_tokens` (number) together to show token usage. `cached_tokens` must be ≤ `prompt_tokens`. Both must be present if either is specified.
+   - Use `cost` (number) for an estimated dollar cost of the task when the scenario would benefit from cost visibility.
+   - Use `ttft` (number) for time-to-first-token in seconds when modeling AI/LLM-style tasks. `ttft` must be ≤ the task duration (`endTime - startTime`).
 
 7. **Output format**: One JSON object per line (JSONL), ordered by `startTime`. No trailing comma, no array wrapper.
 
@@ -59,6 +61,7 @@ Follow these steps exactly when generating a workflow JSONL file:
    - Every `dependsOn` reference points to an existing `taskId`
    - `startTime >= max(endTime of all dependencies)` for every task
    - `startTime < endTime` for non-skipped tasks
+   - If `ttft` is present, `ttft <= endTime - startTime`
    - No circular dependencies
    - All required fields present and correctly typed
 
@@ -68,11 +71,11 @@ Follow these steps exactly when generating a workflow JSONL file:
 
 **Output** (`samples/five-tasks.jsonl`):
 ```jsonl
-{"taskId":"init","name":"Initialize","status":"completed","startTime":0,"endTime":3.0,"dependsOn":[]}
-{"taskId":"worker-a","name":"Worker A","status":"completed","startTime":3.0,"endTime":7.2,"dependsOn":["init"],"prompt_cache_key":"init","prompt_tokens":2048,"cached_tokens":1536}
-{"taskId":"worker-b","name":"Worker B","status":"completed","startTime":3.0,"endTime":5.5,"dependsOn":["init"],"prompt_cache_key":"init","prompt_tokens":2048,"cached_tokens":1800}
-{"taskId":"worker-c","name":"Worker C","status":"completed","startTime":3.0,"endTime":6.8,"dependsOn":["init"],"prompt_cache_key":"init","prompt_tokens":2048,"cached_tokens":1024}
-{"taskId":"finalize","name":"Finalize","status":"completed","startTime":7.2,"endTime":9.2,"dependsOn":["worker-a","worker-b","worker-c"],"prompt_cache_key":"worker-a","prompt_tokens":4096,"cached_tokens":2048}
+{"taskId":"init","name":"Initialize","status":"completed","startTime":0,"endTime":3.0,"dependsOn":[],"cost":0.15,"ttft":0.5}
+{"taskId":"worker-a","name":"Worker A","status":"completed","startTime":3.0,"endTime":7.2,"dependsOn":["init"],"prompt_cache_key":"init","prompt_tokens":2048,"cached_tokens":1536,"cost":0.39,"ttft":1.0}
+{"taskId":"worker-b","name":"Worker B","status":"completed","startTime":3.0,"endTime":5.5,"dependsOn":["init"],"prompt_cache_key":"init","prompt_tokens":2048,"cached_tokens":1800,"cost":0.28,"ttft":0.8}
+{"taskId":"worker-c","name":"Worker C","status":"completed","startTime":3.0,"endTime":6.8,"dependsOn":["init"],"prompt_cache_key":"init","prompt_tokens":2048,"cached_tokens":1024,"cost":0.34,"ttft":0.9}
+{"taskId":"finalize","name":"Finalize","status":"completed","startTime":7.2,"endTime":9.2,"dependsOn":["worker-a","worker-b","worker-c"],"prompt_cache_key":"worker-a","prompt_tokens":4096,"cached_tokens":2048,"cost":0.52,"ttft":1.1}
 ```
 
 ## Constraints
@@ -81,6 +84,7 @@ Follow these steps exactly when generating a workflow JSONL file:
 - Always include all required fields: `taskId`, `name`, `status`, `startTime`, `endTime`, `dependsOn`
 - Durations must be realistic (never all zero unless explicitly "skipped")
 - If `prompt_tokens` is specified, `cached_tokens` must also be specified, and `cached_tokens` ≤ `prompt_tokens`
+- If `ttft` is specified, it must be non-negative and ≤ the task duration
 - The output file must be directly consumable by `node bin/taskviz.js <file>`
 
 ## More Examples

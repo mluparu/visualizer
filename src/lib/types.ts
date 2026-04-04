@@ -16,6 +16,8 @@ export interface TaskEvent {
   prompt_cache_key?: string
   prompt_tokens?: number
   cached_tokens?: number
+  cost?: number
+  ttft?: number
 }
 
 // --- Parsed workflow ---
@@ -62,6 +64,8 @@ export interface GraphNode {
   prompt_cache_key?: string
   prompt_tokens?: number
   cached_tokens?: number
+  cost?: number
+  ttft?: number
 }
 
 export interface EdgeSection {

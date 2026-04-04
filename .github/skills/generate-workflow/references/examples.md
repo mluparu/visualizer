@@ -6,12 +6,12 @@
 
 **Output**:
 ```jsonl
-{"taskId":"task-1","name":"Task 1","status":"completed","startTime":0,"endTime":2.0,"dependsOn":[]}
-{"taskId":"task-2","name":"Task 2","status":"completed","startTime":2.0,"endTime":4.0,"dependsOn":["task-1"]}
-{"taskId":"task-3","name":"Task 3","status":"completed","startTime":4.0,"endTime":6.0,"dependsOn":["task-2"]}
+{"taskId":"task-1","name":"Task 1","status":"completed","startTime":0,"endTime":2.0,"dependsOn":[],"cost":0.12,"ttft":0.4}
+{"taskId":"task-2","name":"Task 2","status":"completed","startTime":2.0,"endTime":4.0,"dependsOn":["task-1"],"cost":0.15,"ttft":0.5}
+{"taskId":"task-3","name":"Task 3","status":"completed","startTime":4.0,"endTime":6.0,"dependsOn":["task-2"],"cost":0.17,"ttft":0.6}
 ```
 
-**Key points**: Each task depends on the previous one. `startTime` of task N = `endTime` of task N-1.
+**Key points**: Each task depends on the previous one. `startTime` of task N = `endTime` of task N-1. The optional `cost` and `ttft` values stay within each task's duration.
 
 ---
 
@@ -21,17 +21,18 @@
 
 **Output**:
 ```jsonl
-{"taskId":"start","name":"Start","status":"completed","startTime":0,"endTime":2.0,"dependsOn":[]}
-{"taskId":"parallel-a","name":"Parallel A","status":"completed","startTime":2.0,"endTime":5.3,"dependsOn":["start"]}
-{"taskId":"parallel-b","name":"Parallel B","status":"completed","startTime":2.0,"endTime":4.1,"dependsOn":["start"]}
-{"taskId":"parallel-c","name":"Parallel C","status":"completed","startTime":2.0,"endTime":6.7,"dependsOn":["start"]}
-{"taskId":"join","name":"Join Results","status":"completed","startTime":6.7,"endTime":8.5,"dependsOn":["parallel-a","parallel-b","parallel-c"]}
+{"taskId":"start","name":"Start","status":"completed","startTime":0,"endTime":2.0,"dependsOn":[],"cost":0.09,"ttft":0.3}
+{"taskId":"parallel-a","name":"Parallel A","status":"completed","startTime":2.0,"endTime":5.3,"dependsOn":["start"],"cost":0.24,"ttft":0.7}
+{"taskId":"parallel-b","name":"Parallel B","status":"completed","startTime":2.0,"endTime":4.1,"dependsOn":["start"],"cost":0.18,"ttft":0.6}
+{"taskId":"parallel-c","name":"Parallel C","status":"completed","startTime":2.0,"endTime":6.7,"dependsOn":["start"],"cost":0.29,"ttft":0.9}
+{"taskId":"join","name":"Join Results","status":"completed","startTime":6.7,"endTime":8.5,"dependsOn":["parallel-a","parallel-b","parallel-c"],"cost":0.21,"ttft":0.8}
 ```
 
 **Key points**:
 - All three parallel tasks share the same `dependsOn: ["start"]` and the same `startTime: 2.0`
 - Each has a different duration (randomized), so they end at different times
 - The join task's `startTime` (6.7) = `max(endTime)` of all parallel tasks (parallel-c ends latest)
+- Each `ttft` remains less than the task's own duration, so the sample stays schema-valid
 
 ---
 
@@ -81,9 +82,9 @@
 
 **Output**:
 ```jsonl
-{"taskId":"analyze","name":"Analyze Document","status":"completed","startTime":0,"endTime":4.0,"dependsOn":[],"metadata":{"model":"gpt-4"}}
-{"taskId":"summarize","name":"Summarize Findings","status":"completed","startTime":4.0,"endTime":7.5,"dependsOn":["analyze"],"prompt_cache_key":"analyze","prompt_tokens":2048,"cached_tokens":1536}
-{"taskId":"draft","name":"Draft Report","status":"completed","startTime":7.5,"endTime":12.0,"dependsOn":["summarize"],"prompt_cache_key":"summarize","prompt_tokens":4096,"cached_tokens":3072}
+{"taskId":"analyze","name":"Analyze Document","status":"completed","startTime":0,"endTime":4.0,"dependsOn":[],"metadata":{"model":"gpt-4"},"cost":0.32,"ttft":0.9}
+{"taskId":"summarize","name":"Summarize Findings","status":"completed","startTime":4.0,"endTime":7.5,"dependsOn":["analyze"],"prompt_cache_key":"analyze","prompt_tokens":2048,"cached_tokens":1536,"cost":0.41,"ttft":1.1}
+{"taskId":"draft","name":"Draft Report","status":"completed","startTime":7.5,"endTime":12.0,"dependsOn":["summarize"],"prompt_cache_key":"summarize","prompt_tokens":4096,"cached_tokens":3072,"cost":0.68,"ttft":1.5}
 ```
 
 **Key points**:
@@ -91,4 +92,4 @@
 - `prompt_tokens` and `cached_tokens` must always appear together
 - `cached_tokens` must be ≤ `prompt_tokens` (75% cache hit in both tasks above)
 - The root task (`analyze`) has no cache fields since it has no predecessor to cache from
-- These fields render as a progress bar inside each task node in the visualizer
+- These fields render as a progress bar inside each task node in the visualizer, alongside the lower-corner cost, duration, and TTFT metrics
