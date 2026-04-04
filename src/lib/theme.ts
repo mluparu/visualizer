@@ -1,25 +1,47 @@
+import { reactive, ref } from 'vue'
 import type { TaskStatus } from './types'
 
-export const theme = {
+export type ThemeName = 'midnight' | 'light' | 'ocean' | 'forest' | 'sunset'
+
+export type ThemeTokens = {
   bg: {
-    base: '#000000',
-    raised: '#0d0d14',
-    surface: '#141420',
-    overlay: '#1a1a28',
-    hover: '#22223a',
-  },
+    base: string
+    raised: string
+    surface: string
+    overlay: string
+    hover: string
+  }
   fg: {
-    primary: '#e0e0e8',
-    secondary: '#9090a8',
-    dim: '#606078',
-    muted: '#44445c',
-  },
+    primary: string
+    secondary: string
+    dim: string
+    muted: string
+  }
   border: {
-    subtle: '#1e1e32',
-    default: '#2a2a44',
-    bright: '#3a3a58',
-  },
-  accent: '#6c8cff',
+    subtle: string
+    default: string
+    bright: string
+  }
+  accent: string
+  font: {
+    mono: string
+  }
+  fontSize: {
+    xs: number
+    sm: number
+    md: number
+    lg: number
+    xl: number
+    hero: number
+  }
+  radius: {
+    sm: number
+    md: number
+    lg: number
+  }
+}
+
+const sharedTokens = {
   font: {
     mono: "'JetBrains Mono', monospace",
   },
@@ -36,7 +58,156 @@ export const theme = {
     md: 6,
     lg: 8,
   },
-} as const
+} satisfies Pick<ThemeTokens, 'font' | 'fontSize' | 'radius'>
+
+export const themePresets: Record<ThemeName, ThemeTokens> = {
+  midnight: {
+    bg: {
+      base: '#000000',
+      raised: '#0d0d14',
+      surface: '#141420',
+      overlay: '#1a1a28',
+      hover: '#22223a',
+    },
+    fg: {
+      primary: '#e0e0e8',
+      secondary: '#9090a8',
+      dim: '#606078',
+      muted: '#44445c',
+    },
+    border: {
+      subtle: '#1e1e32',
+      default: '#2a2a44',
+      bright: '#3a3a58',
+    },
+    accent: '#6c8cff',
+    ...sharedTokens,
+  },
+  light: {
+    bg: {
+      base: '#f8fafc',
+      raised: '#ffffff',
+      surface: '#eef2ff',
+      overlay: '#e2e8f0',
+      hover: '#dbeafe',
+    },
+    fg: {
+      primary: '#0f172a',
+      secondary: '#334155',
+      dim: '#64748b',
+      muted: '#94a3b8',
+    },
+    border: {
+      subtle: '#dbe4f0',
+      default: '#cbd5e1',
+      bright: '#94a3b8',
+    },
+    accent: '#2563eb',
+    ...sharedTokens,
+  },
+  ocean: {
+    bg: {
+      base: '#061826',
+      raised: '#0b2236',
+      surface: '#10304b',
+      overlay: '#153d5d',
+      hover: '#1c4a71',
+    },
+    fg: {
+      primary: '#e0f2fe',
+      secondary: '#93c5fd',
+      dim: '#60a5fa',
+      muted: '#3b82f6',
+    },
+    border: {
+      subtle: '#1d3557',
+      default: '#29557e',
+      bright: '#3b82b6',
+    },
+    accent: '#22d3ee',
+    ...sharedTokens,
+  },
+  forest: {
+    bg: {
+      base: '#081c15',
+      raised: '#10261f',
+      surface: '#163126',
+      overlay: '#1f3d31',
+      hover: '#28503f',
+    },
+    fg: {
+      primary: '#ecfdf5',
+      secondary: '#a7f3d0',
+      dim: '#6ee7b7',
+      muted: '#34d399',
+    },
+    border: {
+      subtle: '#214333',
+      default: '#2d5a46',
+      bright: '#3f7a5f',
+    },
+    accent: '#84cc16',
+    ...sharedTokens,
+  },
+  sunset: {
+    bg: {
+      base: '#1a1020',
+      raised: '#24142b',
+      surface: '#2f1b38',
+      overlay: '#3c2347',
+      hover: '#4a2c56',
+    },
+    fg: {
+      primary: '#fdf2f8',
+      secondary: '#f5c2e7',
+      dim: '#f9a8d4',
+      muted: '#f472b6',
+    },
+    border: {
+      subtle: '#49263f',
+      default: '#6b2d5c',
+      bright: '#8b3d73',
+    },
+    accent: '#fb7185',
+    ...sharedTokens,
+  },
+}
+
+const THEME_STORAGE_KEY = 'taskviz-theme'
+const FALLBACK_THEME: ThemeName = 'midnight'
+
+export const themeOptions: Array<{ value: ThemeName; label: string }> = [
+  { value: 'midnight', label: 'Midnight' },
+  { value: 'light', label: 'Light' },
+  { value: 'ocean', label: 'Ocean' },
+  { value: 'forest', label: 'Forest' },
+  { value: 'sunset', label: 'Sunset' },
+]
+
+function isThemeName(value: string): value is ThemeName {
+  return value in themePresets
+}
+
+function getInitialThemeName(): ThemeName {
+  if (typeof window === 'undefined') return FALLBACK_THEME
+  const stored = window.localStorage.getItem(THEME_STORAGE_KEY)
+  return stored && isThemeName(stored) ? stored : FALLBACK_THEME
+}
+
+export const currentThemeName = ref<ThemeName>(getInitialThemeName())
+export const theme = reactive<ThemeTokens>({ ...themePresets[currentThemeName.value] })
+
+export function setTheme(name: ThemeName): void {
+  const resolvedName = isThemeName(name) ? name : FALLBACK_THEME
+  currentThemeName.value = resolvedName
+  Object.assign(theme, themePresets[resolvedName])
+
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(THEME_STORAGE_KEY, resolvedName)
+  }
+}
+
+setTheme(currentThemeName.value)
 
 export const statusColors: Record<TaskStatus, string> = {
   completed: '#34d399',

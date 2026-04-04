@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { parseWorkflow } from './lib/parser'
 import { buildGraphData, runLayout, mergeLayout } from './lib/graphLayout'
 import { usePlayback } from './composables/usePlayback'
-import { theme } from './lib/theme'
+import { theme, themeOptions, currentThemeName, setTheme, type ThemeName } from './lib/theme'
 import type { ParsedWorkflow, LayoutResult, GraphNode, PlaybackMode } from './lib/types'
 import GraphView from './components/GraphView.vue'
 import Timeline from './components/Timeline.vue'
@@ -76,6 +76,21 @@ function loadSample() {
   loadWorkflow(sample, 'demo-pipeline.jsonl')
 }
 
+function handleThemeChange(e: Event) {
+  setTheme((e.target as HTMLSelectElement).value as ThemeName)
+}
+
+const themeSelectStyle = computed(() => ({
+  background: theme.bg.surface,
+  color: theme.fg.primary,
+  border: '1px solid ' + theme.border.default,
+  borderRadius: theme.radius.sm + 'px',
+  padding: '4px 8px',
+  fontFamily: theme.font.mono,
+  fontSize: theme.fontSize.xs + 'px',
+  cursor: 'pointer',
+}))
+
 const showInspector = computed(() => selectedNode.value !== null)
 </script>
 
@@ -85,10 +100,19 @@ const showInspector = computed(() => selectedNode.value !== null)
     :style="{
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       height: '100vh', fontFamily: theme.font.mono, color: theme.fg.primary, background: theme.bg.base,
+      position: 'relative',
     }"
     @drop.prevent="handleDrop"
     @dragover.prevent
   >
+    <div :style="{ position: 'absolute', top: '16px', right: '16px', display: 'flex', alignItems: 'center', gap: '8px' }">
+      <span :style="{ color: theme.fg.dim, fontSize: theme.fontSize.xs + 'px' }">Theme</span>
+      <select :value="currentThemeName" @change="handleThemeChange" :style="themeSelectStyle">
+        <option v-for="option in themeOptions" :key="option.value" :value="option.value">
+          {{ option.label }}
+        </option>
+      </select>
+    </div>
     <div :style="{ fontSize: theme.fontSize.hero + 'px', fontWeight: 700, letterSpacing: '0.04em' }">
       TASKVIZ<span :style="{ color: theme.accent }">.</span>
     </div>
@@ -130,6 +154,12 @@ const showInspector = computed(() => selectedNode.value !== null)
       <span :style="{ color: theme.fg.dim }">{{ workflow.metadata.totalTasks }} tasks</span>
       <span v-if="workflow.metadata.errorCount" :style="{ color: '#f87171' }">{{ workflow.metadata.errorCount }} errors</span>
       <div :style="{ flex: 1 }" />
+      <span :style="{ color: theme.fg.dim, fontSize: theme.fontSize.xs + 'px' }">Theme</span>
+      <select :value="currentThemeName" @change="handleThemeChange" :style="themeSelectStyle">
+        <option v-for="option in themeOptions" :key="option.value" :value="option.value">
+          {{ option.label }}
+        </option>
+      </select>
       <span :style="{ color: theme.fg.dim, cursor: 'pointer' }" @click="workflow = null; layout = null; selectedNode = null; errorMsg = ''">✕</span>
     </div>
 
