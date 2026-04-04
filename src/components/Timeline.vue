@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { TaskEvent, PlaybackMode } from '../lib/types'
-import { theme, statusColors, alpha } from '../lib/theme'
+import { theme, statusColors, alpha, emphasize } from '../lib/theme'
 
 const props = defineProps<{
   currentTime: number
@@ -63,6 +63,7 @@ const segments = computed(() => {
       width: ((t.endTime - t.startTime) / props.totalDuration) * 100,
       color: statusColors[t.status],
       name: t.name,
+      active: props.currentTime >= t.startTime && props.currentTime <= t.endTime,
     }))
 })
 </script>
@@ -130,7 +131,10 @@ const segments = computed(() => {
         :style="{
           position: 'absolute', top: '2px', bottom: '2px',
           left: seg.left + '%', width: Math.max(seg.width, 0.3) + '%',
-          background: alpha(seg.color, 0.35), borderRadius: '2px',
+          background: seg.active ? alpha(emphasize(seg.color, 0.25), 0.82) : alpha(seg.color, 0.28),
+          border: '1px solid ' + (seg.active ? emphasize(seg.color, 0.25) : 'transparent'),
+          borderRadius: '2px', opacity: seg.active ? 1 : 0.65,
+          boxSizing: 'border-box', transition: 'all 0.15s ease',
         }"
         :title="seg.name"
       />

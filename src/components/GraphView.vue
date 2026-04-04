@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import type { LayoutResult, GraphNode, EdgeSection, PlaybackMode } from '../lib/types'
-import { theme, statusColors, statusBgColors, taskProgressColor, alpha } from '../lib/theme'
+import { theme, statusColors, statusBgColors, taskProgressColor, alpha, emphasize } from '../lib/theme'
 import { getGraphBounds } from '../lib/graphLayout'
 
 const props = defineProps<{
@@ -81,9 +81,10 @@ function isNodePast(node: GraphNode): boolean {
 }
 
 function nodeOpacity(node: GraphNode): number {
-  if (props.playbackMode === 'reveal') return 1
+  if (isNodeActive(node)) return 1
+  if (props.playbackMode === 'reveal') return isNodeFuture(node) ? 0.18 : 0.58
   if (isNodeFuture(node)) return 0.25
-  return 1
+  return 0.72
 }
 
 function isNodeVisible(node: GraphNode): boolean {
@@ -99,16 +100,28 @@ function isEdgeVisible(edge: { targets: string[]; activationTime: number }): boo
   return !isNodeFuture(targetNode)
 }
 
-function nodeColor(node: GraphNode): string {
+function isHighlightedTask(node: GraphNode): boolean {
+  return node.type !== 'start' && node.type !== 'end' && isNodeActive(node)
+}
+
+function baseNodeColor(node: GraphNode): string {
   if (node.type === 'fork' || node.type === 'join') return '#f59e0b'
   if (node.type === 'start' || node.type === 'end') return theme.fg.dim
   if (node.status) return statusColors[node.status]
   return theme.fg.secondary
 }
 
+function nodeColor(node: GraphNode): string {
+  const base = baseNodeColor(node)
+  return isHighlightedTask(node) ? emphasize(base, 0.28) : base
+}
+
 function nodeBg(node: GraphNode): string {
-  if (node.type === 'fork' || node.type === 'join') return alpha('#f59e0b', 0.15)
+  if (node.type === 'fork' || node.type === 'join') {
+    return alpha(nodeColor(node), isHighlightedTask(node) ? 0.24 : 0.15)
+  }
   if (node.type === 'start' || node.type === 'end') return theme.bg.surface
+  if (node.status && isHighlightedTask(node)) return alpha(nodeColor(node), 0.2)
   if (node.status) return statusBgColors[node.status]
   return theme.bg.surface
 }
@@ -323,7 +336,7 @@ const viewBoxStr = computed(() => {
             :rx="theme.radius.sm" :ry="theme.radius.sm"
             :fill="nodeBg(child)"
             :stroke="selectedNode?.id === child.id ? theme.accent : nodeColor(child)"
-            stroke-width="1"
+            :stroke-width="isNodeActive(child) ? 1.6 : 1"
           />
           <text
             :x="8" :y="(child.prompt_cache_key || child.prompt_tokens != null ? 14 : child.height / 2 + 4)"
@@ -418,7 +431,7 @@ const viewBoxStr = computed(() => {
           :rx="theme.radius.md" :ry="theme.radius.md"
           :fill="nodeBg(node)"
           :stroke="selectedNode?.id === node.id ? theme.accent : nodeColor(node)"
-          stroke-width="1.5"
+          :stroke-width="isNodeActive(node) ? 2.4 : 1.5"
           :filter="isNodeActive(node) ? 'url(#activeGlow)' : undefined"
         >
           <animate v-if="isNodeActive(node)"
@@ -429,15 +442,16 @@ const viewBoxStr = computed(() => {
         <!-- Status dot -->
         <circle
           :cx="14" :cy="taskBaseY(node)"
-          r="4"
+          :r="isNodeActive(node) ? 5 : 4"
           :fill="nodeColor(node)"
         />
         <!-- Label -->
         <text
           :x="26" :y="taskBaseY(node) + 4"
-          :fill="theme.fg.primary"
+          :fill="isNodeActive(node) ? nodeColor(node) : theme.fg.primary"
           :font-size="theme.fontSize.sm"
           :font-family="theme.font.mono"
+          :font-weight="isNodeActive(node) ? 700 : 500"
         >
           {{ node.label.length > 20 ? node.label.slice(0, 20) + '…' : node.label }}
         </text>

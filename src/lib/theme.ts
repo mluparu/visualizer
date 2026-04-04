@@ -281,3 +281,16 @@ export function alpha(hex: string, opacity: number): string {
   const b = parseInt(hex.slice(5, 7), 16)
   return `rgba(${r},${g},${b},${opacity})`
 }
+
+export function mix(hex: string, otherHex: string, amount: number): string {
+  const weight = Math.max(0, Math.min(1, amount))
+  const r = Math.round(parseInt(hex.slice(1, 3), 16) * (1 - weight) + parseInt(otherHex.slice(1, 3), 16) * weight)
+  const g = Math.round(parseInt(hex.slice(3, 5), 16) * (1 - weight) + parseInt(otherHex.slice(3, 5), 16) * weight)
+  const b = Math.round(parseInt(hex.slice(5, 7), 16) * (1 - weight) + parseInt(otherHex.slice(5, 7), 16) * weight)
+  return `#${[r, g, b].map(value => value.toString(16).padStart(2, '0')).join('')}`
+}
+
+export function emphasize(hex: string, amount = 0.24): string {
+  const contrastTarget = currentThemeName.value === 'light' ? '#0f172a' : '#f8fafc'
+  return mix(hex, contrastTarget, amount)
+}
