@@ -37,8 +37,11 @@ function getDependencyNames(node: GraphNode): string[] {
 
 <template>
   <div :style="{
-    width: '320px', flexShrink: 0, borderLeft: '1px solid ' + theme.border.subtle,
-    background: theme.bg.raised, overflowY: 'auto', padding: '16px',
+    width: 'min(360px, calc(100vw - 32px))', maxHeight: 'min(70vh, 720px)',
+    border: '1px solid ' + alpha(theme.border.bright, 0.72), borderRadius: theme.radius.lg + 'px',
+    background: alpha(theme.bg.overlay, 0.9), overflowY: 'auto', padding: '16px',
+    boxShadow: '0 18px 36px ' + alpha(theme.bg.base, 0.35),
+    backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
     fontFamily: theme.font.mono, fontSize: theme.fontSize.sm + 'px',
   }">
     <!-- Header -->
@@ -46,7 +49,14 @@ function getDependencyNames(node: GraphNode): string[] {
       <span :style="{ fontWeight: 600, color: theme.fg.primary, fontSize: theme.fontSize.md + 'px' }">
         {{ node.label || node.id }}
       </span>
-      <span :style="{ cursor: 'pointer', color: theme.fg.dim }" @click="emit('close')">✕</span>
+      <button
+        @click="emit('close')"
+        :style="{
+          cursor: 'pointer', color: theme.fg.dim, background: alpha(theme.bg.surface, 0.72),
+          border: '1px solid ' + alpha(theme.border.default, 0.9), borderRadius: theme.radius.sm + 'px',
+          padding: '3px 8px', fontFamily: theme.font.mono, fontSize: theme.fontSize.xs + 'px',
+        }"
+      >✕</button>
     </div>
 
     <!-- Status badge -->

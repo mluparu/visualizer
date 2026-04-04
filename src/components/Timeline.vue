@@ -70,23 +70,31 @@ const segments = computed(() => {
 
 <template>
   <div :style="{
-    display: 'flex', alignItems: 'center', gap: '12px',
-    padding: '6px 16px', borderBottom: '1px solid ' + theme.border.subtle,
+    display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
+    width: '100%', boxSizing: 'border-box',
+    padding: '10px 12px',
+    border: '1px solid ' + alpha(theme.border.bright, 0.72),
+    borderRadius: theme.radius.lg + 'px',
+    background: alpha(theme.bg.overlay, 0.88),
+    boxShadow: '0 16px 30px ' + alpha(theme.bg.base, 0.34),
+    backdropFilter: 'blur(18px)',
+    WebkitBackdropFilter: 'blur(18px)',
     fontFamily: theme.font.mono, fontSize: theme.fontSize.sm + 'px',
-    flexShrink: 0, userSelect: 'none',
+    userSelect: 'none',
   }">
     <!-- Play/Pause -->
     <button
       @click="emit('togglePlay')"
       :style="{
-        background: 'none', border: '1px solid ' + theme.border.default, borderRadius: theme.radius.sm + 'px',
-        color: theme.fg.primary, cursor: 'pointer', padding: '2px 10px',
+        background: alpha(theme.bg.surface, 0.82), border: '1px solid ' + theme.border.default, borderRadius: theme.radius.sm + 'px',
+        color: theme.fg.primary, cursor: 'pointer', padding: '5px 11px',
         fontFamily: theme.font.mono, fontSize: theme.fontSize.sm + 'px',
+        transition: 'all 0.15s ease',
       }"
     >{{ playing ? '⏸' : '▶' }}</button>
 
     <!-- Time -->
-    <span :style="{ color: theme.fg.secondary, minWidth: '100px' }">
+    <span :style="{ color: theme.fg.secondary, minWidth: '118px' }">
       {{ formatTime(currentTime) }} / {{ formatTime(totalDuration) }}
     </span>
 
@@ -94,8 +102,8 @@ const segments = computed(() => {
     <button
       @click="emit('toggleSpeed')"
       :style="{
-        background: 'none', border: '1px solid ' + theme.border.default, borderRadius: theme.radius.sm + 'px',
-        color: theme.fg.dim, cursor: 'pointer', padding: '2px 8px',
+        background: alpha(theme.bg.surface, 0.72), border: '1px solid ' + theme.border.default, borderRadius: theme.radius.sm + 'px',
+        color: theme.fg.dim, cursor: 'pointer', padding: '5px 8px',
         fontFamily: theme.font.mono, fontSize: theme.fontSize.xs + 'px',
       }"
     >{{ speed }}x</button>
@@ -104,11 +112,11 @@ const segments = computed(() => {
     <button
       @click="emit('toggleMode')"
       :style="{
-        background: playbackMode === 'reveal' ? alpha(theme.accent, 0.15) : 'none',
+        background: playbackMode === 'reveal' ? alpha(theme.accent, 0.15) : alpha(theme.bg.surface, 0.72),
         border: '1px solid ' + (playbackMode === 'reveal' ? theme.accent : theme.border.default),
         borderRadius: theme.radius.sm + 'px',
         color: playbackMode === 'reveal' ? theme.accent : theme.fg.dim,
-        cursor: 'pointer', padding: '2px 8px',
+        cursor: 'pointer', padding: '5px 8px',
         fontFamily: theme.font.mono, fontSize: theme.fontSize.xs + 'px',
       }"
       :title="playbackMode === 'preview' ? 'Switch to Reveal mode (hide future tasks)' : 'Switch to Preview mode (show all tasks)'"
@@ -118,8 +126,9 @@ const segments = computed(() => {
     <div
       ref="barRef"
       :style="{
-        flex: 1, height: '20px', background: theme.bg.surface,
+        flex: '1 1 260px', height: '24px', background: alpha(theme.bg.surface, 0.92),
         borderRadius: theme.radius.sm + 'px', position: 'relative', overflow: 'hidden', cursor: 'pointer',
+        border: '1px solid ' + alpha(theme.border.default, 0.75), touchAction: 'none',
       }"
       @mousedown="onMouseDown"
       @mousemove="onMouseMove"
@@ -141,7 +150,8 @@ const segments = computed(() => {
       <!-- Playhead -->
       <div :style="{
         position: 'absolute', top: 0, bottom: 0, left: progress + '%',
-        width: '2px', background: theme.accent, transition: isDragging ? 'none' : 'left 0.05s',
+        width: '2px', background: theme.accent, boxShadow: '0 0 10px ' + alpha(theme.accent, 0.65),
+        transition: isDragging ? 'none' : 'left 0.05s',
       }" />
     </div>
   </div>
