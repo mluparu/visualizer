@@ -1,0 +1,7 @@
+{"taskId":"setup","name":"Setup Environment","status":"completed","startTime":0,"endTime":2.0,"dependsOn":[]}
+{"taskId":"install-deps","name":"Install Dependencies","status":"failed","startTime":2.0,"endTime":5.5,"dependsOn":["setup"],"error":"npm ERR! code ERESOLVE — could not resolve dependency peer@^3.0.0 required by plugin@1.2.0. Found: peer@2.8.1"}
+{"taskId":"compile","name":"Compile Source","status":"skipped","startTime":5.5,"endTime":5.5,"dependsOn":["install-deps"]}
+{"taskId":"lint","name":"Run Linter","status":"skipped","startTime":5.5,"endTime":5.5,"dependsOn":["install-deps"]}
+{"taskId":"test","name":"Run Tests","status":"skipped","startTime":5.5,"endTime":5.5,"dependsOn":["compile","lint"]}
+{"taskId":"package","name":"Build Package","status":"skipped","startTime":5.5,"endTime":5.5,"dependsOn":["test"]}
+{"taskId":"publish","name":"Publish to Registry","status":"skipped","startTime":5.5,"endTime":5.5,"dependsOn":["package"]}

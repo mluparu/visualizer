@@ -1,0 +1,9 @@
+{"taskId":"deploy","name":"Deploy to Production","status":"completed","startTime":0,"endTime":30.0,"dependsOn":[],"group":"deploy"}
+{"taskId":"provision-infra","name":"Provision Infrastructure","status":"completed","startTime":0.5,"endTime":12.0,"dependsOn":[],"parentTaskId":"deploy","group":"deploy","metadata":{"provider":"AWS","region":"us-east-1"}}
+{"taskId":"create-vpc","name":"Create VPC","status":"completed","startTime":1.0,"endTime":5.0,"dependsOn":[],"parentTaskId":"provision-infra","group":"deploy"}
+{"taskId":"create-rds","name":"Create RDS Instance","status":"completed","startTime":5.0,"endTime":11.5,"dependsOn":["create-vpc"],"parentTaskId":"provision-infra","group":"deploy","metadata":{"engine":"postgres","size":"db.t3.medium"}}
+{"taskId":"push-image","name":"Push Docker Image","status":"completed","startTime":0.5,"endTime":8.5,"dependsOn":[],"parentTaskId":"deploy","group":"deploy","metadata":{"registry":"ECR","tag":"v2.4.1"}}
+{"taskId":"run-migrations","name":"Run DB Migrations","status":"completed","startTime":12.0,"endTime":16.0,"dependsOn":["provision-infra","push-image"],"parentTaskId":"deploy","group":"deploy","metadata":{"migrations":3}}
+{"taskId":"health-check","name":"Health Check","status":"completed","startTime":16.0,"endTime":18.0,"dependsOn":["run-migrations"],"parentTaskId":"deploy","group":"deploy"}
+{"taskId":"update-dns","name":"Update DNS","status":"completed","startTime":18.0,"endTime":22.0,"dependsOn":["health-check"],"group":"deploy","metadata":{"domain":"app.example.com"}}
+{"taskId":"notify-team","name":"Notify Team","status":"completed","startTime":22.0,"endTime":23.0,"dependsOn":["update-dns"],"group":"deploy","metadata":{"channel":"#releases"}}

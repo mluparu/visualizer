@@ -1,0 +1,5 @@
+{"taskId":"fetch-data","name":"Fetch Data","status":"completed","startTime":0,"endTime":3.2,"dependsOn":[],"metadata":{"source":"api.example.com","records":1500}}
+{"taskId":"validate","name":"Validate Records","status":"completed","startTime":3.2,"endTime":5.8,"dependsOn":["fetch-data"],"metadata":{"valid":1487,"invalid":13},"prompt_cache_key":"fetch-data","prompt_tokens":2048,"cached_tokens":1536}
+{"taskId":"transform","name":"Transform Data","status":"completed","startTime":5.8,"endTime":9.1,"dependsOn":["validate"],"metadata":{"format":"parquet"},"prompt_cache_key":"validate","prompt_tokens":3200,"cached_tokens":2048}
+{"taskId":"load","name":"Load to Warehouse","status":"completed","startTime":9.1,"endTime":14.5,"dependsOn":["transform"],"metadata":{"table":"analytics.events","rows":1487},"prompt_cache_key":"transform","prompt_tokens":4096,"cached_tokens":3200}
+{"taskId":"notify","name":"Send Notification","status":"completed","startTime":14.5,"endTime":15.2,"dependsOn":["load"],"metadata":{"channel":"slack","recipients":3}}

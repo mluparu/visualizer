@@ -1,0 +1,1 @@
+{"taskId":"only-task","name":"Process Batch","status":"completed","startTime":0,"endTime":4.5,"dependsOn":[],"metadata":{"records":500,"source":"s3://bucket/input.csv"}}

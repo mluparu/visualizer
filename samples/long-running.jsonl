@@ -1,0 +1,8 @@
+{"taskId":"quick-check","name":"Quick Health Check","status":"completed","startTime":0,"endTime":0.1,"dependsOn":[],"metadata":{"type":"heartbeat"}}
+{"taskId":"data-export","name":"Export Large Dataset","status":"completed","startTime":0.1,"endTime":120.1,"dependsOn":["quick-check"],"metadata":{"rows":15000000,"format":"parquet","sizeGB":4.2}}
+{"taskId":"fast-validate","name":"Validate Schema","status":"completed","startTime":0.1,"endTime":0.5,"dependsOn":["quick-check"],"metadata":{"columns":48}}
+{"taskId":"index-build","name":"Build Search Index","status":"completed","startTime":0.5,"endTime":45.5,"dependsOn":["fast-validate"],"metadata":{"documents":2000000}}
+{"taskId":"cache-warm","name":"Warm Cache","status":"completed","startTime":0.5,"endTime":3.0,"dependsOn":["fast-validate"],"metadata":{"keys":500}}
+{"taskId":"thumbnail","name":"Generate Thumbnails","status":"completed","startTime":3.0,"endTime":90.0,"dependsOn":["cache-warm"],"metadata":{"images":10000,"avgMs":8.7}}
+{"taskId":"quick-notify","name":"Send Start Alert","status":"completed","startTime":0,"endTime":0.15,"dependsOn":[],"metadata":{"channel":"pagerduty"}}
+{"taskId":"final-report","name":"Generate Report","status":"completed","startTime":120.1,"endTime":122.0,"dependsOn":["data-export","index-build","thumbnail"],"metadata":{"pages":12}}

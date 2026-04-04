@@ -1,0 +1,16 @@
+{"taskId":"init","name":"Initialize","status":"completed","startTime":0,"endTime":1.0,"dependsOn":[],"group":"setup"}
+{"taskId":"build-api","name":"Build API","status":"completed","startTime":1.0,"endTime":5.5,"dependsOn":["init"],"group":"build"}
+{"taskId":"build-web","name":"Build Web","status":"completed","startTime":1.0,"endTime":4.8,"dependsOn":["init"],"group":"build"}
+{"taskId":"build-mobile","name":"Build Mobile","status":"completed","startTime":1.0,"endTime":6.2,"dependsOn":["init"],"group":"build"}
+{"taskId":"gate-build","name":"Build Gate","status":"completed","startTime":6.2,"endTime":6.5,"dependsOn":["build-api","build-web","build-mobile"],"group":"build"}
+{"taskId":"test-api","name":"Test API","status":"completed","startTime":6.5,"endTime":12.0,"dependsOn":["gate-build"],"group":"test","metadata":{"tests":200}}
+{"taskId":"test-web","name":"Test Web","status":"completed","startTime":6.5,"endTime":10.5,"dependsOn":["gate-build"],"group":"test","metadata":{"tests":150}}
+{"taskId":"test-mobile","name":"Test Mobile","status":"completed","startTime":6.5,"endTime":14.0,"dependsOn":["gate-build"],"group":"test","metadata":{"tests":80}}
+{"taskId":"test-e2e","name":"E2E Suite","status":"completed","startTime":6.5,"endTime":16.0,"dependsOn":["gate-build"],"group":"test","metadata":{"tests":45}}
+{"taskId":"gate-test","name":"Test Gate","status":"completed","startTime":16.0,"endTime":16.3,"dependsOn":["test-api","test-web","test-mobile","test-e2e"],"group":"test"}
+{"taskId":"deploy-staging","name":"Deploy Staging","status":"completed","startTime":16.3,"endTime":20.0,"dependsOn":["gate-test"],"group":"deploy"}
+{"taskId":"deploy-canary","name":"Deploy Canary","status":"completed","startTime":16.3,"endTime":22.0,"dependsOn":["gate-test"],"group":"deploy"}
+{"taskId":"deploy-prod-1","name":"Deploy Prod Region 1","status":"completed","startTime":16.3,"endTime":24.0,"dependsOn":["gate-test"],"group":"deploy"}
+{"taskId":"gate-deploy","name":"Deploy Gate","status":"completed","startTime":24.0,"endTime":24.3,"dependsOn":["deploy-staging","deploy-canary","deploy-prod-1"],"group":"deploy"}
+{"taskId":"smoke-test","name":"Smoke Test","status":"completed","startTime":24.3,"endTime":26.0,"dependsOn":["gate-deploy"],"group":"verify"}
+{"taskId":"notify","name":"Notify Stakeholders","status":"completed","startTime":26.0,"endTime":26.5,"dependsOn":["smoke-test"],"group":"verify"}
