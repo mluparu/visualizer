@@ -313,7 +313,7 @@ onBeforeUnmount(() => {
 
 const isReady = computed(() => workflow.value !== null && layout.value !== null)
 const hasSource = computed(() => props.jsonlText.trim().length > 0 || props.jsonlPath.trim().length > 0)
-const workflowTitle = computed(() => workflow.value?.metadata.title?.trim() || 'TASKVIZ')
+const workflowTitle = computed(() => workflow.value?.metadata.title?.trim() || 'Workflow Visualizer')
 const workflowDescription = computed(() => workflow.value?.metadata.description?.trim() || '')
 const showInspector = computed(() => props.showChrome && selectedNode.value !== null && !playing.value)
 const showBottomControls = computed(() => props.showChrome && (!playing.value || controlsVisible.value))
@@ -410,7 +410,7 @@ const inspectorOverlayStyle = computed<CSSProperties>(() => ({
   <div ref="rootRef" :style="shellStyle">
     <div v-if="!hasSource" :style="emptyStateStyle">
       <div :style="{ textAlign: 'center', padding: '24px', maxWidth: '520px' }">
-        <div :style="{ fontSize: themeTokens.fontSize.lg + 'px', fontWeight: 700 }">TaskViz embed is waiting for data</div>
+        <div :style="{ fontSize: themeTokens.fontSize.lg + 'px', fontWeight: 700 }">Workflow Visualizer is waiting for data</div>
         <div :style="{ marginTop: '8px', color: themeTokens.fg.secondary, fontSize: themeTokens.fontSize.sm + 'px' }">
           Provide a `jsonlPath` or `jsonlText` prop to render a workflow.
         </div>

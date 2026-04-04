@@ -72,13 +72,15 @@ All remaining lines in the log file are task objects:
 
 ```jsonl
 {"title":"Document Processing Pipeline","description":"A diamond-shaped workflow that fans out into two parallel processing branches before merging the results."}
-{"taskId":"A","name":"Initialize","status":"completed","startTime":0,"endTime":3,"dependsOn":[],"cost":0.18,"ttft":0.6}
-{"taskId":"B","name":"Process Left","status":"completed","startTime":3,"endTime":7,"dependsOn":["A"],"prompt_cache_key":"A","prompt_tokens":2500,"cached_tokens":2000,"cost":0.46,"ttft":1.1}
-{"taskId":"C","name":"Process Right","status":"completed","startTime":3,"endTime":6,"dependsOn":["A"],"prompt_cache_key":"A","prompt_tokens":2500,"cached_tokens":2000,"cost":0.34,"ttft":0.9}
-{"taskId":"D","name":"Merge","status":"completed","startTime":7,"endTime":10,"dependsOn":["B","C"],"prompt_cache_key":"B","prompt_tokens":5000,"cached_tokens":2500,"cost":0.71,"ttft":1.4}
+{"taskId":"A","name":"Initialize","status":"completed","startTime":0,"endTime":3,"dependsOn":[],"cost":0.18}
+{"taskId":"B","name":"Process Left","status":"completed","startTime":3,"endTime":7,"dependsOn":["A"],"cost":0.46}
+{"taskId":"C","name":"Process Right","status":"completed","startTime":3,"endTime":6,"dependsOn":["A"],"cost":0.34}
+{"taskId":"D","name":"Merge","status":"completed","startTime":7,"endTime":10,"dependsOn":["B","C"],"cost":0.71}
 ```
 
 This renders a diamond DAG: A forks into B and C (parallel), which join at D. Tasks B and C show 80% prompt cache hit rates from A, while the lower corners display estimated task cost plus duration and TTFT.
+
+![Minimal Example](minimal_example.png)
 
 ### How Forks and Joins Work
 
