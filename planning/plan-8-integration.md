@@ -41,7 +41,7 @@ Use **one deployed Astro site** as the GitHub Pages host, but keep the visualize
 
 1. **Add the visualizer as a dependency**
    - In local development, the Astro repo can use a sibling dependency such as `file:../visualizer` while iterating.
-   - For CI and production builds, switch to a **GitHub dependency pinned to a tag**, e.g. `github:owner/visualizer#v1.2.0`, so the Astro build always uses a known-good version.
+   - For CI and production builds, switch to a **GitHub dependency pinned to a tag**, e.g. `github:mluparu/visualizer#v1.2.0`, so the Astro build always uses a known-good version.
 
 2. **Create the Astro wrapper island**
    - Add `src/components/TaskViz.astro` in the Astro repo as a thin wrapper around the imported Vue component.

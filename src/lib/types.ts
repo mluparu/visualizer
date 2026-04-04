@@ -98,3 +98,4 @@ export interface LayoutResult {
 }
 
 export type PlaybackMode = 'preview' | 'reveal'
+export type ViewportMode = 'fit' | 'follow'

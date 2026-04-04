@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, type CSSProperties } from 'vue'
-import TaskVizEmbed from './components/TaskVizEmbed.vue'
+import VisualizationEmbed from './components/VisualizationEmbed.vue'
 import { theme, themeOptions, currentThemeName, setTheme, alpha, type ThemeName } from './lib/theme'
 
 const workflowText = ref('')
@@ -200,7 +200,7 @@ const themeSelectStyle = computed<CSSProperties>(() => ({
     </div>
   </div>
 
-  <TaskVizEmbed
+  <VisualizationEmbed
     v-else
     :jsonl-text="workflowText"
     :file-label="fileLabel"

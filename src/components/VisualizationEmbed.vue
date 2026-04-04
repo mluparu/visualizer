@@ -4,18 +4,20 @@ import { parseWorkflow } from '../lib/parser'
 import { buildGraphData, mergeLayout, runLayout } from '../lib/graphLayout'
 import { usePlayback } from '../composables/usePlayback'
 import { theme as themeTokens, themeOptions, currentThemeName, setTheme, alpha, type ThemeName } from '../lib/theme'
-import type { GraphNode, LayoutResult, ParsedWorkflow, PlaybackMode } from '../lib/types'
-import type { TaskVizEmbedProps } from '../lib/embedTypes'
+import type { GraphNode, LayoutResult, ParsedWorkflow, PlaybackMode, ViewportMode } from '../lib/types'
+import type { VisualizationEmbedProps } from '../lib/embedTypes'
 import GraphView from './GraphView.vue'
 import Timeline from './Timeline.vue'
 import Inspector from './Inspector.vue'
 
-const props = withDefaults(defineProps<TaskVizEmbedProps>(), {
+const props = withDefaults(defineProps<VisualizationEmbedProps>(), {
   jsonlPath: '',
   jsonlText: '',
   fileLabel: '',
   theme: 'midnight',
   defaultMode: 'preview',
+  viewportMode: 'fit',
+  followSmoothing: 0.1,
   autoplayWhenVisible: false,
   height: '100vh',
   showChrome: true,
@@ -27,6 +29,7 @@ const emit = defineEmits<{
   close: []
   loaded: [workflow: ParsedWorkflow]
   error: [message: string]
+  'update:viewportMode': [mode: ViewportMode]
 }>()
 
 const rootRef = ref<HTMLElement | null>(null)
@@ -37,6 +40,7 @@ const errorMsg = ref('')
 const loading = ref(false)
 const activeFileLabel = ref(props.fileLabel)
 const playbackMode = ref<PlaybackMode>(props.defaultMode)
+const viewportMode = ref<ViewportMode>(props.viewportMode)
 const isVisible = ref(!props.autoplayWhenVisible)
 const autoplayConsumed = ref(false)
 
@@ -118,6 +122,12 @@ function handleToggleSpeed() {
 
 function handleToggleMode() {
   playbackMode.value = playbackMode.value === 'preview' ? 'reveal' : 'preview'
+  revealControls()
+}
+
+function handleViewportModeChange(mode: ViewportMode) {
+  viewportMode.value = mode
+  emit('update:viewportMode', mode)
   revealControls()
 }
 
@@ -258,6 +268,14 @@ watch(
   () => props.defaultMode,
   mode => {
     playbackMode.value = mode
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.viewportMode,
+  mode => {
+    viewportMode.value = mode
   },
   { immediate: true }
 )
@@ -448,8 +466,12 @@ const inspectorOverlayStyle = computed<CSSProperties>(() => ({
           :current-time="currentTime"
           :selected-node="selectedNode"
           :playback-mode="playbackMode"
+          :viewport-mode="viewportMode"
+          :follow-smoothing="props.followSmoothing"
+          :toolbar-bottom-offset="showBottomControls ? 96 : 16"
           :style="{ width: '100%', height: '100%' }"
           @select-node="handleNodeSelection"
+          @change-viewport-mode="handleViewportModeChange"
         />
       </div>
 

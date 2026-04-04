@@ -102,7 +102,7 @@ The generated HTML report includes:
 - **Prompt cache visualization** — tasks with `prompt_tokens`/`cached_tokens` show a progress bar with cache hit percentage inside the node; `prompt_cache_key` appears as a subtitle
 - **Per-task metrics** — optional `cost` appears in the lower-left corner while duration and `TTFT` appear in the lower-right corner of each task card
 - **Click to inspect** — select any node to open the inspector panel with timing, dependencies, cache stats, error details, and metadata
-- **Pan and zoom** — drag to pan, scroll to zoom, "Fit" button to reset
+- **Pan and zoom** — drag to pan, scroll to zoom, `Fit` to reset the whole graph, or toggle `Follow` to keep currently executing tasks framed smoothly
 - **Drag-and-drop** — drop a `.jsonl` file onto the landing page (when opened directly)
 
 ## Embedding in an Astro Site
@@ -127,7 +127,7 @@ npm install github:mluparu/visualizer#v1.0.0
 
 ### Public component API
 
-`TaskVizEmbed` accepts the following props:
+`VisualizationEmbed` accepts the following props:
 
 | Prop | Type | Purpose |
 |---|---|---|
@@ -135,6 +135,8 @@ npm install github:mluparu/visualizer#v1.0.0
 | `jsonlText` | `string` | Inline JSONL text; takes precedence over `jsonlPath` |
 | `theme` | `ThemeName` | Initial theme: `midnight`, `light`, `ocean`, `forest`, or `sunset` |
 | `defaultMode` | `PlaybackMode` | Initial playback mode: `preview` or `reveal` |
+| `viewportMode` | `'fit' \| 'follow'` | Initial camera behavior: `fit` shows the whole graph, while `follow` tracks the tasks currently executing |
+| `followSmoothing` | `number` | Follow-camera smoothing from `0` to `1`; smaller values are slower and smoother |
 | `autoplayWhenVisible` | `boolean` | Start playback automatically when the component enters the viewport |
 | `height` | `string` | CSS height for the embed, e.g. `720px` or `70vh` |
 | `showChrome` | `boolean` | Show or hide the embed header, timeline controls, and inspector chrome |
@@ -148,16 +150,18 @@ In the Astro site, keep the workflow files in `public/taskviz/` and pass the pat
 
 ```astro
 ---
-import { TaskVizEmbed } from 'visualizer'
+import { VisualizationEmbed } from 'visualizer'
 
 const workflowPath = `${import.meta.env.BASE_URL}taskviz/ci-pipeline.jsonl`
 ---
 
-<TaskVizEmbed
+<VisualizationEmbed
   client:visible
   jsonlPath={workflowPath}
   theme="midnight"
   defaultMode="reveal"
+  viewportMode="follow"
+  followSmoothing={0.08}
   autoplayWhenVisible={true}
   height="720px"
   showThemePicker={false}
@@ -169,7 +173,7 @@ For a cleaner article-style presentation, you can hide most of the UI chrome ent
 > `showThemePicker` and `showCloseButton` only apply when `showChrome` is enabled.
 
 ```astro
-<TaskVizEmbed
+<VisualizationEmbed
   client:visible
   jsonlPath={workflowPath}
   theme="midnight"
@@ -180,6 +184,8 @@ For a cleaner article-style presentation, you can hide most of the UI chrome ent
   showThemePicker={false}
 />
 ```
+
+> `TaskVizEmbed` remains available as a legacy alias for backward compatibility.
 
 > If you prefer, the Astro repo can still wrap this in a local `src/components/TaskViz.astro` file and pass through the props from there.
 

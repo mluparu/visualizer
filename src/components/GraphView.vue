@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import type { LayoutResult, GraphNode, EdgeSection, PlaybackMode } from '../lib/types'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import type { LayoutResult, GraphNode, EdgeSection, PlaybackMode, ViewportMode, GraphBounds } from '../lib/types'
 import { theme, statusColors, statusBgColors, taskProgressColor, alpha, emphasize } from '../lib/theme'
 import { getGraphBounds } from '../lib/graphLayout'
 
@@ -9,63 +9,168 @@ const props = defineProps<{
   currentTime: number
   selectedNode: GraphNode | null
   playbackMode: PlaybackMode
+  viewportMode: ViewportMode
+  followSmoothing?: number
+  toolbarBottomOffset?: number
 }>()
 
 const emit = defineEmits<{
   selectNode: [node: GraphNode | null]
+  changeViewportMode: [mode: ViewportMode]
 }>()
 
 const svgRef = ref<SVGSVGElement | null>(null)
-const viewBox = ref({ x: 0, y: 0, width: 800, height: 600 })
+const viewBox = ref<GraphBounds>({ x: 0, y: 0, width: 800, height: 600 })
 const isPanning = ref(false)
 const panStart = ref({ x: 0, y: 0, vbX: 0, vbY: 0 })
+const followTarget = ref<GraphBounds | null>(null)
+const lastFollowBounds = ref<GraphBounds | null>(null)
+const followUserScale = ref(1)
+const followUserOffset = ref({ x: 0, y: 0 })
+let followFrameId: number | null = null
 
-watch(() => props.layout, () => {
-  if (props.layout) fitView()
-}, { immediate: true })
+const DEFAULT_FOLLOW_SMOOTHING = 0.1
+const FOLLOW_EPSILON = 0.45
+const FOLLOW_MIN_WIDTH = 560
+const FOLLOW_MIN_HEIGHT = 360
 
-function fitView() {
-  const b = props.layout.bounds
-  viewBox.value = { x: b.x, y: b.y, width: b.width, height: b.height }
+const followLerp = computed(() => {
+  const value = Number(props.followSmoothing ?? DEFAULT_FOLLOW_SMOOTHING)
+  if (!Number.isFinite(value)) return DEFAULT_FOLLOW_SMOOTHING
+  return Math.min(Math.max(value, 0.02), 0.5)
+})
+
+function cloneBounds(bounds: GraphBounds): GraphBounds {
+  return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height }
 }
 
-function onWheel(e: WheelEvent) {
-  e.preventDefault()
-  const factor = e.deltaY > 0 ? 1.1 : 0.9
-  const svgEl = svgRef.value
-  if (!svgEl) return
+function resetFollowAdjustments() {
+  followUserScale.value = 1
+  followUserOffset.value = { x: 0, y: 0 }
+}
 
-  const rect = svgEl.getBoundingClientRect()
-  const mx = (e.clientX - rect.left) / rect.width
-  const my = (e.clientY - rect.top) / rect.height
+function applyFollowAdjustments(bounds: GraphBounds): GraphBounds {
+  const width = Math.max(bounds.width * followUserScale.value, 1)
+  const height = Math.max(bounds.height * followUserScale.value, 1)
+  const centerX = bounds.x + bounds.width / 2 + followUserOffset.value.x
+  const centerY = bounds.y + bounds.height / 2 + followUserOffset.value.y
 
-  const vb = viewBox.value
-  const newW = vb.width * factor
-  const newH = vb.height * factor
-  viewBox.value = {
-    x: vb.x - (newW - vb.width) * mx,
-    y: vb.y - (newH - vb.height) * my,
-    width: newW,
-    height: newH,
+  return {
+    x: centerX - width / 2,
+    y: centerY - height / 2,
+    width,
+    height,
   }
 }
 
-function onMouseDown(e: MouseEvent) {
-  if (e.button !== 0) return
-  isPanning.value = true
-  panStart.value = { x: e.clientX, y: e.clientY, vbX: viewBox.value.x, vbY: viewBox.value.y }
+function syncFollowAdjustmentsFromViewBox(nextViewBox: GraphBounds, baseBounds: GraphBounds) {
+  const baseCenterX = baseBounds.x + baseBounds.width / 2
+  const baseCenterY = baseBounds.y + baseBounds.height / 2
+  const nextCenterX = nextViewBox.x + nextViewBox.width / 2
+  const nextCenterY = nextViewBox.y + nextViewBox.height / 2
+
+  followUserScale.value = Math.max(nextViewBox.width / Math.max(baseBounds.width, 1), 0.1)
+  followUserOffset.value = {
+    x: nextCenterX - baseCenterX,
+    y: nextCenterY - baseCenterY,
+  }
 }
 
-function onMouseMove(e: MouseEvent) {
-  if (!isPanning.value || !svgRef.value) return
-  const rect = svgRef.value.getBoundingClientRect()
-  const dx = (e.clientX - panStart.value.x) / rect.width * viewBox.value.width
-  const dy = (e.clientY - panStart.value.y) / rect.height * viewBox.value.height
-  viewBox.value = { ...viewBox.value, x: panStart.value.vbX - dx, y: panStart.value.vbY - dy }
+function stopFollowAnimation() {
+  if (followFrameId !== null) {
+    cancelAnimationFrame(followFrameId)
+    followFrameId = null
+  }
 }
 
-function onMouseUp() {
-  isPanning.value = false
+function boundsDistance(a: GraphBounds, b: GraphBounds): number {
+  return Math.max(
+    Math.abs(a.x - b.x),
+    Math.abs(a.y - b.y),
+    Math.abs(a.width - b.width),
+    Math.abs(a.height - b.height),
+  )
+}
+
+function normalizeBoundsForViewport(bounds: GraphBounds): GraphBounds {
+  const svgEl = svgRef.value
+  const aspectRatio = svgEl && svgEl.clientWidth > 0 && svgEl.clientHeight > 0
+    ? svgEl.clientWidth / svgEl.clientHeight
+    : 16 / 9
+
+  let x = bounds.x
+  let y = bounds.y
+  let width = Math.max(bounds.width, FOLLOW_MIN_WIDTH)
+  let height = Math.max(bounds.height, FOLLOW_MIN_HEIGHT)
+
+  if (width !== bounds.width) x -= (width - bounds.width) / 2
+  if (height !== bounds.height) y -= (height - bounds.height) / 2
+
+  const boundsRatio = width / height
+  if (boundsRatio > aspectRatio) {
+    const adjustedHeight = width / aspectRatio
+    y -= (adjustedHeight - height) / 2
+    height = adjustedHeight
+  } else {
+    const adjustedWidth = height * aspectRatio
+    x -= (adjustedWidth - width) / 2
+    width = adjustedWidth
+  }
+
+  return { x, y, width, height }
+}
+
+function applyViewBoxTarget(bounds: GraphBounds, immediate = false) {
+  followTarget.value = cloneBounds(bounds)
+
+  if (immediate) {
+    stopFollowAnimation()
+    viewBox.value = cloneBounds(bounds)
+    return
+  }
+
+  if (followFrameId !== null) return
+
+  const step = () => {
+    const target = followTarget.value
+    if (!target) {
+      followFrameId = null
+      return
+    }
+
+    const current = viewBox.value
+    const next = {
+      x: current.x + (target.x - current.x) * followLerp.value,
+      y: current.y + (target.y - current.y) * followLerp.value,
+      width: current.width + (target.width - current.width) * followLerp.value,
+      height: current.height + (target.height - current.height) * followLerp.value,
+    }
+
+    if (boundsDistance(next, target) <= FOLLOW_EPSILON) {
+      viewBox.value = cloneBounds(target)
+      followFrameId = null
+      return
+    }
+
+    viewBox.value = next
+    followFrameId = requestAnimationFrame(step)
+  }
+
+  followFrameId = requestAnimationFrame(step)
+}
+
+function fitView() {
+  followTarget.value = null
+  stopFollowAnimation()
+  viewBox.value = normalizeBoundsForViewport(props.layout.bounds)
+}
+
+function stopFollowing() {
+  lastFollowBounds.value = null
+  followTarget.value = null
+  resetFollowAdjustments()
+  stopFollowAnimation()
+  emit('changeViewportMode', 'fit')
 }
 
 function isNodeActive(node: GraphNode): boolean {
@@ -78,6 +183,131 @@ function isNodeFuture(node: GraphNode): boolean {
 
 function isNodePast(node: GraphNode): boolean {
   return props.currentTime > node.endTime
+}
+
+function flattenedTaskNodes(): GraphNode[] {
+  const nodes: GraphNode[] = []
+
+  for (const node of props.layout.nodes) {
+    if (node.type === 'task') {
+      nodes.push(node)
+    }
+
+    if (node.children?.length) {
+      for (const child of node.children) {
+        nodes.push({
+          ...child,
+          x: node.x + child.x,
+          y: node.y + child.y,
+        })
+      }
+    }
+  }
+
+  return nodes.filter(node => node.type === 'task')
+}
+
+const activeFollowNodes = computed(() => flattenedTaskNodes().filter(node => isNodeActive(node)))
+const activeFollowSignature = computed(() => activeFollowNodes.value.map(node => node.id).sort().join('|'))
+
+function resolveFollowBounds(): GraphBounds {
+  if (activeFollowNodes.value.length === 0) {
+    return lastFollowBounds.value ?? normalizeBoundsForViewport(props.layout.bounds)
+  }
+
+  const nextBounds = normalizeBoundsForViewport(getGraphBounds(activeFollowNodes.value))
+  lastFollowBounds.value = nextBounds
+  return nextBounds
+}
+
+function updateFollowTarget(immediate = false) {
+  if (props.viewportMode !== 'follow') return
+  applyViewBoxTarget(applyFollowAdjustments(resolveFollowBounds()), immediate)
+}
+
+watch(() => props.layout, () => {
+  fitView()
+  if (props.viewportMode === 'follow') {
+    updateFollowTarget(false)
+  }
+}, { immediate: true })
+
+watch(() => props.viewportMode, mode => {
+  if (mode === 'follow') {
+    updateFollowTarget(false)
+    return
+  }
+
+  followTarget.value = null
+  stopFollowAnimation()
+})
+
+watch(activeFollowSignature, () => {
+  updateFollowTarget(false)
+})
+
+onMounted(() => {
+  fitView()
+  if (props.viewportMode === 'follow') {
+    updateFollowTarget(false)
+  }
+})
+
+onBeforeUnmount(() => {
+  stopFollowAnimation()
+})
+
+function onWheel(e: WheelEvent) {
+  e.preventDefault()
+
+  const factor = e.deltaY > 0 ? 1.1 : 0.9
+  const svgEl = svgRef.value
+  if (!svgEl) return
+
+  const rect = svgEl.getBoundingClientRect()
+  const mx = (e.clientX - rect.left) / rect.width
+  const my = (e.clientY - rect.top) / rect.height
+
+  const vb = viewBox.value
+  const newW = vb.width * factor
+  const newH = vb.height * factor
+  const nextViewBox = {
+    x: vb.x - (newW - vb.width) * mx,
+    y: vb.y - (newH - vb.height) * my,
+    width: newW,
+    height: newH,
+  }
+
+  viewBox.value = nextViewBox
+
+  if (props.viewportMode === 'follow') {
+    syncFollowAdjustmentsFromViewBox(nextViewBox, resolveFollowBounds())
+    applyViewBoxTarget(applyFollowAdjustments(resolveFollowBounds()), true)
+  }
+}
+
+function onMouseDown(e: MouseEvent) {
+  if (e.button !== 0) return
+
+  isPanning.value = true
+  panStart.value = { x: e.clientX, y: e.clientY, vbX: viewBox.value.x, vbY: viewBox.value.y }
+}
+
+function onMouseMove(e: MouseEvent) {
+  if (!isPanning.value || !svgRef.value) return
+  const rect = svgRef.value.getBoundingClientRect()
+  const dx = (e.clientX - panStart.value.x) / rect.width * viewBox.value.width
+  const dy = (e.clientY - panStart.value.y) / rect.height * viewBox.value.height
+  const nextViewBox = { ...viewBox.value, x: panStart.value.vbX - dx, y: panStart.value.vbY - dy }
+  viewBox.value = nextViewBox
+
+  if (props.viewportMode === 'follow') {
+    syncFollowAdjustmentsFromViewBox(nextViewBox, resolveFollowBounds())
+  }
+}
+
+function onMouseUp() {
+  isPanning.value = false
 }
 
 function showsExecutionBorder(node: GraphNode): boolean {
@@ -191,6 +421,22 @@ function onBgClick() {
   emit('selectNode', null)
 }
 
+function handleFitButton() {
+  stopFollowing()
+  fitView()
+}
+
+function toggleFollowMode() {
+  if (props.viewportMode === 'follow') {
+    stopFollowing()
+    return
+  }
+
+  resetFollowAdjustments()
+  emit('changeViewportMode', 'follow')
+  applyViewBoxTarget(applyFollowAdjustments(resolveFollowBounds()), false)
+}
+
 function cachePercent(node: GraphNode): number {
   if (node.prompt_tokens == null || node.prompt_tokens === 0) return 0
   return Math.round(((node.cached_tokens ?? 0) / node.prompt_tokens) * 100)
@@ -229,20 +475,21 @@ const viewBoxStr = computed(() => {
 </script>
 
 <template>
-  <svg
-    ref="svgRef"
-    :viewBox="viewBoxStr"
-    :style="{
-      width: '100%', height: '100%', background: theme.bg.base, cursor: isPanning ? 'grabbing' : 'grab',
-      display: 'block',
-    }"
-    @wheel.prevent="onWheel"
-    @mousedown="onMouseDown"
-    @mousemove="onMouseMove"
-    @mouseup="onMouseUp"
-    @mouseleave="onMouseUp"
-    @click="onBgClick"
-  >
+  <div :style="{ position: 'relative', width: '100%', height: '100%' }">
+    <svg
+      ref="svgRef"
+      :viewBox="viewBoxStr"
+      :style="{
+        width: '100%', height: '100%', background: theme.bg.base, cursor: isPanning ? 'grabbing' : 'grab',
+        display: 'block',
+      }"
+      @wheel.prevent="onWheel"
+      @mousedown="onMouseDown"
+      @mousemove="onMouseMove"
+      @mouseup="onMouseUp"
+      @mouseleave="onMouseUp"
+      @click="onBgClick"
+    >
     <defs>
       <filter id="activeGlow" x="-50%" y="-50%" width="200%" height="200%">
         <feGaussianBlur stdDeviation="4" result="blur" />
@@ -624,13 +871,56 @@ const viewBoxStr = computed(() => {
       </template>
     </g>
 
-    <!-- Fit button -->
-    <g :transform="`translate(${viewBox.x + viewBox.width - 80}, ${viewBox.y + viewBox.height - 40})`"
-      :style="{ cursor: 'pointer' }"
-      @click.stop="fitView"
+    </svg>
+
+    <div
+      :style="{
+        position: 'absolute',
+        right: '16px',
+        bottom: (props.toolbarBottomOffset ?? 16) + 'px',
+        zIndex: 6,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        pointerEvents: 'auto',
+        transition: 'bottom 0.2s ease',
+      }"
     >
-      <rect width="60" height="24" rx="4" :fill="theme.bg.overlay" :stroke="theme.border.default" stroke-width="1" />
-      <text x="30" y="16" text-anchor="middle" :fill="theme.fg.secondary" :font-size="theme.fontSize.xs" :font-family="theme.font.mono">⟲ Fit</text>
-    </g>
-  </svg>
+      <button
+        type="button"
+        @click.stop="handleFitButton"
+        :style="{
+          border: '1px solid ' + theme.border.default,
+          background: alpha(theme.bg.overlay, 0.92),
+          color: theme.fg.secondary,
+          borderRadius: theme.radius.sm + 'px',
+          padding: '5px 10px',
+          fontFamily: theme.font.mono,
+          fontSize: theme.fontSize.xs + 'px',
+          cursor: 'pointer',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          boxShadow: '0 8px 24px ' + alpha(theme.bg.base, 0.28),
+        }"
+      >⟲ Fit</button>
+
+      <button
+        type="button"
+        @click.stop="toggleFollowMode"
+        :style="{
+          border: '1px solid ' + (props.viewportMode === 'follow' ? alpha(theme.accent, 0.92) : theme.border.default),
+          background: props.viewportMode === 'follow' ? alpha(theme.accent, 0.18) : alpha(theme.bg.overlay, 0.92),
+          color: props.viewportMode === 'follow' ? theme.accent : theme.fg.secondary,
+          borderRadius: theme.radius.sm + 'px',
+          padding: '5px 10px',
+          fontFamily: theme.font.mono,
+          fontSize: theme.fontSize.xs + 'px',
+          cursor: 'pointer',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          boxShadow: '0 8px 24px ' + alpha(theme.bg.base, 0.28),
+        }"
+      >◎ Follow</button>
+    </div>
+  </div>
 </template>
