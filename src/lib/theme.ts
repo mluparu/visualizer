@@ -176,6 +176,62 @@ export const themePresets: Record<ThemeName, ThemeTokens> = {
 const THEME_STORAGE_KEY = 'taskviz-theme'
 const FALLBACK_THEME: ThemeName = 'midnight'
 
+const defaultStatusColors: Record<TaskStatus, string> = {
+  completed: '#34d399',
+  failed: '#f87171',
+  running: '#60a5fa',
+  pending: '#9ca3af',
+  skipped: '#6b7280',
+}
+
+const defaultStatusBgColors: Record<TaskStatus, string> = {
+  completed: '#064e3b',
+  failed: '#7f1d1d',
+  running: '#1e3a5f',
+  pending: '#1f2937',
+  skipped: '#1a1a2e',
+}
+
+const lightStatusColors: Record<TaskStatus, string> = {
+  completed: '#047857',
+  failed: '#b91c1c',
+  running: '#1d4ed8',
+  pending: '#475569',
+  skipped: '#64748b',
+}
+
+const lightStatusBgColors: Record<TaskStatus, string> = {
+  completed: '#d1fae5',
+  failed: '#fee2e2',
+  running: '#dbeafe',
+  pending: '#e2e8f0',
+  skipped: '#f1f5f9',
+}
+
+const statusColorPresets: Record<ThemeName, Record<TaskStatus, string>> = {
+  midnight: { ...defaultStatusColors },
+  light: { ...lightStatusColors },
+  ocean: { ...defaultStatusColors },
+  forest: { ...defaultStatusColors },
+  sunset: { ...defaultStatusColors },
+}
+
+const statusBgColorPresets: Record<ThemeName, Record<TaskStatus, string>> = {
+  midnight: { ...defaultStatusBgColors },
+  light: { ...lightStatusBgColors },
+  ocean: { ...defaultStatusBgColors },
+  forest: { ...defaultStatusBgColors },
+  sunset: { ...defaultStatusBgColors },
+}
+
+const progressColorPresets: Record<ThemeName, string> = {
+  midnight: '#c2610a',
+  light: '#2563eb',
+  ocean: '#0ea5e9',
+  forest: '#65a30d',
+  sunset: '#ec4899',
+}
+
 export const themeOptions: Array<{ value: ThemeName; label: string }> = [
   { value: 'midnight', label: 'Midnight' },
   { value: 'light', label: 'Light' },
@@ -196,11 +252,21 @@ function getInitialThemeName(): ThemeName {
 
 export const currentThemeName = ref<ThemeName>(getInitialThemeName())
 export const theme = reactive<ThemeTokens>({ ...themePresets[currentThemeName.value] })
+export const statusColors = reactive<Record<TaskStatus, string>>({ ...statusColorPresets[currentThemeName.value] })
+export const statusBgColors = reactive<Record<TaskStatus, string>>({ ...statusBgColorPresets[currentThemeName.value] })
+export const taskProgressColor = ref(progressColorPresets[currentThemeName.value])
+
+function syncThemeDerivedColors(name: ThemeName): void {
+  Object.assign(statusColors, statusColorPresets[name])
+  Object.assign(statusBgColors, statusBgColorPresets[name])
+  taskProgressColor.value = progressColorPresets[name]
+}
 
 export function setTheme(name: ThemeName): void {
   const resolvedName = isThemeName(name) ? name : FALLBACK_THEME
   currentThemeName.value = resolvedName
   Object.assign(theme, themePresets[resolvedName])
+  syncThemeDerivedColors(resolvedName)
 
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(THEME_STORAGE_KEY, resolvedName)
@@ -208,22 +274,6 @@ export function setTheme(name: ThemeName): void {
 }
 
 setTheme(currentThemeName.value)
-
-export const statusColors: Record<TaskStatus, string> = {
-  completed: '#34d399',
-  failed: '#f87171',
-  running: '#60a5fa',
-  pending: '#6b7280',
-  skipped: '#4b5563',
-}
-
-export const statusBgColors: Record<TaskStatus, string> = {
-  completed: '#064e3b',
-  failed: '#7f1d1d',
-  running: '#1e3a5f',
-  pending: '#1f2937',
-  skipped: '#1a1a2e',
-}
 
 export function alpha(hex: string, opacity: number): string {
   const r = parseInt(hex.slice(1, 3), 16)

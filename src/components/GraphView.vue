@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import type { LayoutResult, GraphNode, EdgeSection, PlaybackMode } from '../lib/types'
-import { theme, statusColors, statusBgColors, alpha } from '../lib/theme'
+import { theme, statusColors, statusBgColors, taskProgressColor, alpha } from '../lib/theme'
 import { getGraphBounds } from '../lib/graphLayout'
 
 const props = defineProps<{
@@ -318,7 +318,7 @@ const viewBoxStr = computed(() => {
               :y="(child.prompt_cache_key ? 41 : 27)"
               :width="(child.width - 12) * cachePercent(child) / 100" :height="12"
               :rx="3" :ry="3"
-              fill="#c2610a"
+              :fill="taskProgressColor"
             />
             <text
               :x="child.width / 2"
@@ -412,7 +412,7 @@ const viewBoxStr = computed(() => {
             :y="(node.prompt_cache_key ? 50 : 36)"
             :width="(node.width - 20) * cachePercent(node) / 100" :height="14"
             :rx="4" :ry="4"
-            fill="#c2610a"
+            :fill="taskProgressColor"
           />
           <!-- Percentage text inside bar -->
           <text
