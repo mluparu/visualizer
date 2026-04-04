@@ -80,6 +80,44 @@ function isNodePast(node: GraphNode): boolean {
   return props.currentTime > node.endTime
 }
 
+function showsExecutionBorder(node: GraphNode): boolean {
+  if (node.type !== 'task' || !node.status) return false
+  if (node.status === 'pending' || node.status === 'skipped') return false
+  return !isNodeFuture(node)
+}
+
+function executionProgress(node: GraphNode): number {
+  if (!showsExecutionBorder(node)) return 0
+  if (isNodePast(node)) return 1
+
+  const duration = node.endTime - node.startTime
+  if (duration <= 0) return props.currentTime >= node.startTime ? 1 : 0
+
+  return Math.max(0, Math.min(1, (props.currentTime - node.startTime) / duration))
+}
+
+function hasAnimatedExecutionBorder(node: GraphNode): boolean {
+  return isNodeActive(node) && executionProgress(node) < 1
+}
+
+function executionBorderColor(node: GraphNode): string {
+  const base = props.selectedNode?.id === node.id ? theme.accent : nodeColor(node)
+  return alpha(base, isNodeActive(node) ? 0.95 : 0.78)
+}
+
+function executionClipId(node: GraphNode): string {
+  const safeId = node.id.replace(/[^a-zA-Z0-9_-]/g, '-')
+  return `execution-clip-${safeId}`
+}
+
+function executionBorderInset(node: GraphNode): number {
+  return node.height <= 40 ? 1 : 1.5
+}
+
+function executionBorderWidth(node: GraphNode): number {
+  return node.height <= 40 ? 2.2 : 3.2
+}
+
 function nodeOpacity(node: GraphNode): number {
   if (isNodeActive(node)) return 1
   if (props.playbackMode === 'reveal') return isNodeFuture(node) ? 0.18 : 0.58
@@ -331,12 +369,32 @@ const viewBoxStr = computed(() => {
           :style="{ cursor: 'pointer', transition: 'opacity 0.3s ease' }"
           @click="onNodeClick(child, $event)"
         >
+          <defs v-if="showsExecutionBorder(child) && hasAnimatedExecutionBorder(child)">
+            <clipPath :id="executionClipId(child)" clipPathUnits="objectBoundingBox">
+              <rect x="0" y="0" :width="executionProgress(child)" height="1" />
+            </clipPath>
+          </defs>
           <rect
             :width="child.width" :height="child.height"
             :rx="theme.radius.sm" :ry="theme.radius.sm"
             :fill="nodeBg(child)"
             :stroke="selectedNode?.id === child.id ? theme.accent : nodeColor(child)"
             :stroke-width="isNodeActive(child) ? 1.6 : 1"
+          />
+          <rect
+            v-if="showsExecutionBorder(child)"
+            :x="executionBorderInset(child)"
+            :y="executionBorderInset(child)"
+            :width="Math.max(child.width - executionBorderInset(child) * 2, 0)"
+            :height="Math.max(child.height - executionBorderInset(child) * 2, 0)"
+            :rx="theme.radius.sm + 0.5"
+            :ry="theme.radius.sm + 0.5"
+            fill="none"
+            :stroke="executionBorderColor(child)"
+            :stroke-width="executionBorderWidth(child)"
+            stroke-linejoin="round"
+            pointer-events="none"
+            :clip-path="hasAnimatedExecutionBorder(child) ? `url(#${executionClipId(child)})` : undefined"
           />
           <text
             :x="8" :y="(child.prompt_cache_key || child.prompt_tokens != null ? 14 : child.height / 2 + 4)"
@@ -426,6 +484,11 @@ const viewBoxStr = computed(() => {
 
       <!-- Task node -->
       <template v-else>
+        <defs v-if="showsExecutionBorder(node) && hasAnimatedExecutionBorder(node)">
+          <clipPath :id="executionClipId(node)" clipPathUnits="objectBoundingBox">
+            <rect x="0" y="0" :width="executionProgress(node)" height="1" />
+          </clipPath>
+        </defs>
         <rect
           :width="node.width" :height="node.height"
           :rx="theme.radius.md" :ry="theme.radius.md"
@@ -439,6 +502,21 @@ const viewBoxStr = computed(() => {
             values="1;0.7;1" dur="2s" repeatCount="indefinite"
           />
         </rect>
+        <rect
+          v-if="showsExecutionBorder(node)"
+          :x="executionBorderInset(node)"
+          :y="executionBorderInset(node)"
+          :width="Math.max(node.width - executionBorderInset(node) * 2, 0)"
+          :height="Math.max(node.height - executionBorderInset(node) * 2, 0)"
+          :rx="theme.radius.md + 1"
+          :ry="theme.radius.md + 1"
+          fill="none"
+          :stroke="executionBorderColor(node)"
+          :stroke-width="executionBorderWidth(node)"
+          stroke-linejoin="round"
+          pointer-events="none"
+          :clip-path="hasAnimatedExecutionBorder(node) ? `url(#${executionClipId(node)})` : undefined"
+        />
         <!-- Status dot -->
         <circle
           :cx="14" :cy="taskBaseY(node)"
