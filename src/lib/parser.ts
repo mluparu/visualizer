@@ -17,6 +17,30 @@ function toComparableSeconds(value: unknown): number | null {
   return null
 }
 
+function isWorkflowHeader(raw: Record<string, unknown>): boolean {
+  return !('taskId' in raw) && (raw.title != null || raw.description != null)
+}
+
+function validateWorkflowHeader(raw: Record<string, unknown>, lineNum: number): Pick<WorkflowMetadata, 'title' | 'description'> {
+  const errors: string[] = []
+
+  if (raw.title != null && typeof raw.title !== 'string') errors.push('title must be a string')
+  if (raw.description != null && typeof raw.description !== 'string') errors.push('description must be a string')
+
+  if (errors.length > 0) {
+    throw new Error(`Line ${lineNum}: ${errors.join('; ')}`)
+  }
+
+  const title = typeof raw.title === 'string' ? raw.title.trim() : undefined
+  const description = typeof raw.description === 'string' ? raw.description.trim() : undefined
+
+  if (!title && !description) {
+    throw new Error(`Line ${lineNum}: workflow metadata must include a non-empty title or description`)
+  }
+
+  return { title, description }
+}
+
 function validateTask(raw: Record<string, unknown>, lineNum: number): TaskEvent {
   const errors: string[] = []
 
@@ -92,10 +116,12 @@ function validateTask(raw: Record<string, unknown>, lineNum: number): TaskEvent 
 
 export function parseWorkflow(text: string): ParsedWorkflow {
   const lines = text.split('\n').filter(l => l.trim().length > 0)
+  const workflowHeader: Pick<WorkflowMetadata, 'title' | 'description'> = {}
+
   if (lines.length === 0) {
     return {
       tasks: [],
-      metadata: { totalTasks: 0, duration: 0, errorCount: 0, skippedCount: 0, groups: [] },
+      metadata: { ...workflowHeader, totalTasks: 0, duration: 0, errorCount: 0, skippedCount: 0, groups: [] },
       successors: {},
       predecessors: {},
     }
@@ -110,7 +136,28 @@ export function parseWorkflow(text: string): ParsedWorkflow {
     } catch {
       throw new Error(`Line ${i + 1}: invalid JSON`)
     }
+
+    if (isWorkflowHeader(parsed)) {
+      if (rawTasks.length > 0) {
+        throw new Error(`Line ${i + 1}: workflow title/description must appear before task entries`)
+      }
+      if (workflowHeader.title || workflowHeader.description) {
+        throw new Error(`Line ${i + 1}: only one workflow metadata entry is allowed per file`)
+      }
+      Object.assign(workflowHeader, validateWorkflowHeader(parsed, i + 1))
+      continue
+    }
+
     rawTasks.push(validateTask(parsed, i + 1))
+  }
+
+  if (rawTasks.length === 0) {
+    return {
+      tasks: [],
+      metadata: { ...workflowHeader, totalTasks: 0, duration: 0, errorCount: 0, skippedCount: 0, groups: [] },
+      successors: {},
+      predecessors: {},
+    }
   }
 
   // Normalize ISO timestamps to seconds
@@ -168,6 +215,7 @@ export function parseWorkflow(text: string): ParsedWorkflow {
   const groups = [...new Set(rawTasks.map(t => t.group).filter((g): g is string => !!g))]
 
   const metadata: WorkflowMetadata = {
+    ...workflowHeader,
     totalTasks: rawTasks.length,
     duration,
     errorCount,

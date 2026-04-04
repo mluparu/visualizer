@@ -1,3 +1,4 @@
+{"title":"Nested Deployment Groups","description":"A production deployment example showing compound parent-child tasks for infrastructure provisioning, migrations, health checks, and notifications."}
 {"taskId":"deploy","name":"Deploy to Production","status":"completed","startTime":0,"endTime":30.0,"dependsOn":[],"group":"deploy","cost":2.4,"ttft":1.6}
 {"taskId":"provision-infra","name":"Provision Infrastructure","status":"completed","startTime":0.5,"endTime":12.0,"dependsOn":[],"parentTaskId":"deploy","group":"deploy","metadata":{"provider":"AWS","region":"us-east-1"},"cost":0.94,"ttft":1.6}
 {"taskId":"create-vpc","name":"Create VPC","status":"completed","startTime":1.0,"endTime":5.0,"dependsOn":[],"parentTaskId":"provision-infra","group":"deploy","cost":0.32,"ttft":1.6}

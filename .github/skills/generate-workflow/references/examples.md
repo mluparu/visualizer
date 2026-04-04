@@ -1,11 +1,14 @@
 # Workflow Simulation Examples
 
+Each example may optionally start with a workflow-level header line containing `title` and `description` for the full file.
+
 ## Example 1: Simple Linear Chain
 
 **Prompt**: "3 sequential tasks that each take 2 seconds"
 
 **Output**:
 ```jsonl
+{"title":"Linear Three-Step Workflow","description":"A simple sequential chain where each task waits for the previous one to finish."}
 {"taskId":"task-1","name":"Task 1","status":"completed","startTime":0,"endTime":2.0,"dependsOn":[],"cost":0.12,"ttft":0.4}
 {"taskId":"task-2","name":"Task 2","status":"completed","startTime":2.0,"endTime":4.0,"dependsOn":["task-1"],"cost":0.15,"ttft":0.5}
 {"taskId":"task-3","name":"Task 3","status":"completed","startTime":4.0,"endTime":6.0,"dependsOn":["task-2"],"cost":0.17,"ttft":0.6}

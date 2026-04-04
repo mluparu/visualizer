@@ -41,7 +41,14 @@ for f in samples/*.jsonl; do node bin/taskviz.js "$f" -o "out/$(basename "$f" .j
 
 ## JSONL Schema
 
-Each line in the log file is one JSON object representing a task:
+An optional **workflow header** may appear as the first line of the JSONL file to describe the overall run:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `title` | `string` | | Large report title shown at the top of the loaded view |
+| `description` | `string` | | Subtitle/summary for the full workflow run |
+
+All remaining lines in the log file are task objects:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -64,6 +71,7 @@ Each line in the log file is one JSON object representing a task:
 ### Minimal Example
 
 ```jsonl
+{"title":"Document Processing Pipeline","description":"A diamond-shaped workflow that fans out into two parallel processing branches before merging the results."}
 {"taskId":"A","name":"Initialize","status":"completed","startTime":0,"endTime":3,"dependsOn":[],"cost":0.18,"ttft":0.6}
 {"taskId":"B","name":"Process Left","status":"completed","startTime":3,"endTime":7,"dependsOn":["A"],"prompt_cache_key":"A","prompt_tokens":2500,"cached_tokens":2000,"cost":0.46,"ttft":1.1}
 {"taskId":"C","name":"Process Right","status":"completed","startTime":3,"endTime":6,"dependsOn":["A"],"prompt_cache_key":"A","prompt_tokens":2500,"cached_tokens":2000,"cost":0.34,"ttft":0.9}

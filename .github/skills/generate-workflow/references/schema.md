@@ -1,5 +1,15 @@
 # TaskViz JSONL Schema
 
+## Optional Workflow Header
+
+The first JSONL line may optionally describe the overall run instead of a task:
+
+```jsonl
+{"title":"Nightly CI Pipeline","description":"Build, test, scan, and deploy stages for the main branch."}
+```
+
+Use this header when you want the visualizer to show a large report title and subtitle above the graph.
+
 ## Required Fields
 
 | Field | Type | Description |

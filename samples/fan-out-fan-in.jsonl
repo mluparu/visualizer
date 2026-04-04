@@ -1,3 +1,4 @@
+{"title":"Fan-Out / Fan-In Processing","description":"A single preparation step distributes work across six parallel workers, then aggregates all results into one final task."}
 {"taskId":"prepare","name":"Prepare Work Items","status":"completed","startTime":0,"endTime":2.0,"dependsOn":[],"metadata":{"items":6},"cost":0.11,"ttft":0.8}
 {"taskId":"worker-1","name":"Worker 1 — Chunk A","status":"completed","startTime":2.0,"endTime":7.5,"dependsOn":["prepare"],"metadata":{"chunk":"A","records":250},"prompt_cache_key":"prepare","prompt_tokens":1800,"cached_tokens":1200,"cost":0.3,"ttft":1.8}
 {"taskId":"worker-2","name":"Worker 2 — Chunk B","status":"completed","startTime":2.5,"endTime":5.8,"dependsOn":["prepare"],"metadata":{"chunk":"B","records":250},"prompt_cache_key":"prepare","prompt_tokens":1800,"cached_tokens":1400,"cost":0.2,"ttft":1.3}

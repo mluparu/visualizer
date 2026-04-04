@@ -67,7 +67,8 @@ function readFile(file: File) {
 }
 
 function loadSample() {
-  const sample = `{"taskId":"checkout","name":"Checkout","status":"completed","startTime":0,"endTime":2,"dependsOn":[]}
+  const sample = `{"title":"Demo CI Pipeline","description":"Parallel frontend and backend workstreams converge on tests, with one failure blocking deployment."}
+{"taskId":"checkout","name":"Checkout","status":"completed","startTime":0,"endTime":2,"dependsOn":[]}
 {"taskId":"build-fe","name":"Build Frontend","status":"completed","startTime":2,"endTime":8,"dependsOn":["checkout"]}
 {"taskId":"build-be","name":"Build Backend","status":"completed","startTime":2,"endTime":10,"dependsOn":["checkout"]}
 {"taskId":"test-fe","name":"Test Frontend","status":"completed","startTime":8,"endTime":14,"dependsOn":["build-fe"]}
@@ -91,6 +92,8 @@ const themeSelectStyle = computed(() => ({
   cursor: 'pointer',
 }))
 
+const workflowTitle = computed(() => workflow.value?.metadata.title?.trim() || 'TASKVIZ')
+const workflowDescription = computed(() => workflow.value?.metadata.description?.trim() || '')
 const showInspector = computed(() => selectedNode.value !== null)
 </script>
 
@@ -145,22 +148,41 @@ const showInspector = computed(() => selectedNode.value !== null)
   }">
     <!-- Header -->
     <div :style="{
-      display: 'flex', alignItems: 'center', gap: '16px',
-      padding: '8px 16px', borderBottom: '1px solid ' + theme.border.subtle,
-      fontSize: theme.fontSize.sm + 'px', flexShrink: 0,
+      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '24px',
+      padding: '16px', borderBottom: '1px solid ' + theme.border.subtle,
+      flexShrink: 0,
     }">
-      <span :style="{ fontWeight: 700, letterSpacing: '0.04em' }">TASKVIZ<span :style="{ color: theme.accent }">.</span></span>
-      <span :style="{ color: theme.fg.secondary }">{{ fileLabel }}</span>
-      <span :style="{ color: theme.fg.dim }">{{ workflow.metadata.totalTasks }} tasks</span>
-      <span v-if="workflow.metadata.errorCount" :style="{ color: '#f87171' }">{{ workflow.metadata.errorCount }} errors</span>
-      <div :style="{ flex: 1 }" />
-      <span :style="{ color: theme.fg.dim, fontSize: theme.fontSize.xs + 'px' }">Theme</span>
-      <select :value="currentThemeName" @change="handleThemeChange" :style="themeSelectStyle">
-        <option v-for="option in themeOptions" :key="option.value" :value="option.value">
-          {{ option.label }}
-        </option>
-      </select>
-      <span :style="{ color: theme.fg.dim, cursor: 'pointer' }" @click="workflow = null; layout = null; selectedNode = null; errorMsg = ''">✕</span>
+      <div :style="{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '6px' }">
+        <div :style="{ fontSize: Math.round(theme.fontSize.hero * 1.4) + 'px', fontWeight: 800, lineHeight: 1.05, letterSpacing: '-0.03em' }">
+          {{ workflowTitle }}
+        </div>
+        <div
+          v-if="workflowDescription"
+          :style="{ color: theme.fg.secondary, fontSize: theme.fontSize.md + 'px', lineHeight: 1.4, maxWidth: '720px' }"
+        >
+          {{ workflowDescription }}
+        </div>
+      </div>
+
+      <div :style="{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px', flexShrink: 0 }">
+        <div :style="{ display: 'flex', alignItems: 'center', gap: '8px' }">
+          <span :style="{ color: theme.fg.dim, fontSize: theme.fontSize.xs + 'px' }">Theme</span>
+          <select :value="currentThemeName" @change="handleThemeChange" :style="themeSelectStyle">
+            <option v-for="option in themeOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+          <span :style="{ color: theme.fg.dim, cursor: 'pointer' }" @click="workflow = null; layout = null; selectedNode = null; errorMsg = ''">✕</span>
+        </div>
+
+        <div :style="{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', fontSize: theme.fontSize.sm + 'px' }">
+          <span :style="{ color: theme.fg.secondary }">{{ fileLabel }}</span>
+          <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap' }">
+            <span :style="{ color: theme.fg.dim }">{{ workflow.metadata.totalTasks }} tasks</span>
+            <span v-if="workflow.metadata.errorCount" :style="{ color: '#f87171' }">{{ workflow.metadata.errorCount }} errors</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Timeline -->

@@ -1,3 +1,4 @@
+{"title":"Linear Data Pipeline","description":"A simple sequential ETL flow from data fetch through validation, transformation, loading, and final notification."}
 {"taskId":"fetch-data","name":"Fetch Data","status":"completed","startTime":0,"endTime":3.2,"dependsOn":[],"metadata":{"source":"api.example.com","records":1500},"cost":0.16,"ttft":1.3}
 {"taskId":"validate","name":"Validate Records","status":"completed","startTime":3.2,"endTime":5.8,"dependsOn":["fetch-data"],"metadata":{"valid":1487,"invalid":13},"prompt_cache_key":"fetch-data","prompt_tokens":2048,"cached_tokens":1536,"cost":0.18,"ttft":1.0}
 {"taskId":"transform","name":"Transform Data","status":"completed","startTime":5.8,"endTime":9.1,"dependsOn":["validate"],"metadata":{"format":"parquet"},"prompt_cache_key":"validate","prompt_tokens":3200,"cached_tokens":2048,"cost":0.23,"ttft":1.3}

@@ -1,3 +1,4 @@
+{"title":"CI Pipeline — Main Branch","description":"Build, test, and deploy stages for the main branch, with a failed integration test blocking release."}
 {"taskId":"checkout","name":"Checkout","status":"completed","startTime":0,"endTime":1.5,"dependsOn":[],"group":"build","metadata":{"branch":"main","commit":"abc1234"},"cost":0.11,"ttft":0.6}
 {"taskId":"build-fe","name":"Build Frontend","status":"completed","startTime":1.5,"endTime":8.2,"dependsOn":["checkout"],"group":"build","metadata":{"framework":"React 18","bundler":"vite"},"cost":0.42,"ttft":1.6}
 {"taskId":"build-be","name":"Build Backend","status":"completed","startTime":1.5,"endTime":10.5,"dependsOn":["checkout"],"group":"build","metadata":{"runtime":"Node 20","framework":"Express"},"cost":0.56,"ttft":1.6}

@@ -1,3 +1,4 @@
+{"title":"Multi-Stage Parallel Release Flow","description":"Build, test, and deploy phases each fan out in parallel, then synchronize through gate tasks before moving to the next stage."}
 {"taskId":"init","name":"Initialize","status":"completed","startTime":0,"endTime":1.0,"dependsOn":[],"group":"setup","cost":0.04,"ttft":0.4}
 {"taskId":"build-api","name":"Build API","status":"completed","startTime":1.0,"endTime":5.5,"dependsOn":["init"],"group":"build","cost":0.27,"ttft":1.6}
 {"taskId":"build-web","name":"Build Web","status":"completed","startTime":1.0,"endTime":4.8,"dependsOn":["init"],"group":"build","cost":0.23,"ttft":1.5}

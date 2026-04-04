@@ -23,6 +23,8 @@ export interface TaskEvent {
 // --- Parsed workflow ---
 
 export interface WorkflowMetadata {
+  title?: string
+  description?: string
   totalTasks: number
   duration: number
   errorCount: number

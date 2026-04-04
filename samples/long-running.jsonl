@@ -1,3 +1,4 @@
+{"title":"Long-Running Mixed Duration Workflow","description":"A workflow combining instant checks with very long exports, indexing, thumbnail generation, and a final consolidated report."}
 {"taskId":"quick-check","name":"Quick Health Check","status":"completed","startTime":0,"endTime":0.1,"dependsOn":[],"metadata":{"type":"heartbeat"},"cost":0.04,"ttft":0.1}
 {"taskId":"data-export","name":"Export Large Dataset","status":"completed","startTime":0.1,"endTime":120.1,"dependsOn":["quick-check"],"metadata":{"rows":15000000,"format":"parquet","sizeGB":4.2},"cost":5.42,"ttft":1.6}
 {"taskId":"fast-validate","name":"Validate Schema","status":"completed","startTime":0.1,"endTime":0.5,"dependsOn":["quick-check"],"metadata":{"columns":48},"cost":0.04,"ttft":0.2}

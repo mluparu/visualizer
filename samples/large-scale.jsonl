@@ -1,3 +1,4 @@
+{"title":"Large-Scale Parallel Workflow","description":"A high-volume stress-test scenario with hundreds of placeholder workers branching from two root tasks across parallel lanes."}
 {"taskId":"task-a","name":"Task A","status":"completed","startTime":0,"endTime":2,"dependsOn":[],"group":"root","cost":0.09,"ttft":0.8}
 {"taskId":"task-b","name":"Task B","status":"completed","startTime":0,"endTime":2,"dependsOn":[],"group":"root","cost":0.09,"ttft":0.8}
 {"taskId":"a-worker-001","name":"Amber Beacon A001","status":"completed","startTime":2,"endTime":3,"dependsOn":["task-a"],"group":"branch-a","metadata":{"lane":"A","placeholder":true,"batch":1},"prompt_cache_key":"task-a","prompt_tokens":2048,"cached_tokens":1536,"cost":0.11,"ttft":0.4}

@@ -1,1 +1,2 @@
+{"title":"Single Task Example","description":"The smallest possible workflow: one standalone batch-processing step with no dependencies."}
 {"taskId":"only-task","name":"Process Batch","status":"completed","startTime":0,"endTime":4.5,"dependsOn":[],"metadata":{"records":500,"source":"s3://bucket/input.csv"},"cost":0.22,"ttft":1.6}
