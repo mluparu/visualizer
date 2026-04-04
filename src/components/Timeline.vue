@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { TaskEvent } from '../lib/types'
+import type { TaskEvent, PlaybackMode } from '../lib/types'
 import { theme, statusColors, alpha } from '../lib/theme'
 
 const props = defineProps<{
@@ -9,12 +9,14 @@ const props = defineProps<{
   playing: boolean
   speed: number
   tasks: TaskEvent[]
+  playbackMode: PlaybackMode
 }>()
 
 const emit = defineEmits<{
   seek: [time: number]
   togglePlay: []
   toggleSpeed: []
+  toggleMode: []
 }>()
 
 const barRef = ref<HTMLElement | null>(null)
@@ -96,6 +98,20 @@ const segments = computed(() => {
         fontFamily: theme.font.mono, fontSize: theme.fontSize.xs + 'px',
       }"
     >{{ speed }}x</button>
+
+    <!-- Playback mode toggle -->
+    <button
+      @click="emit('toggleMode')"
+      :style="{
+        background: playbackMode === 'reveal' ? alpha(theme.accent, 0.15) : 'none',
+        border: '1px solid ' + (playbackMode === 'reveal' ? theme.accent : theme.border.default),
+        borderRadius: theme.radius.sm + 'px',
+        color: playbackMode === 'reveal' ? theme.accent : theme.fg.dim,
+        cursor: 'pointer', padding: '2px 8px',
+        fontFamily: theme.font.mono, fontSize: theme.fontSize.xs + 'px',
+      }"
+      :title="playbackMode === 'preview' ? 'Switch to Reveal mode (hide future tasks)' : 'Switch to Preview mode (show all tasks)'"
+    >{{ playbackMode === 'preview' ? '☑️' : '🏁' }}</button>
 
     <!-- Scrub bar -->
     <div

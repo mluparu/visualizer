@@ -4,7 +4,7 @@ import { parseWorkflow } from './lib/parser'
 import { buildGraphData, runLayout, mergeLayout } from './lib/graphLayout'
 import { usePlayback } from './composables/usePlayback'
 import { theme } from './lib/theme'
-import type { ParsedWorkflow, LayoutResult, GraphNode } from './lib/types'
+import type { ParsedWorkflow, LayoutResult, GraphNode, PlaybackMode } from './lib/types'
 import GraphView from './components/GraphView.vue'
 import Timeline from './components/Timeline.vue'
 import Inspector from './components/Inspector.vue'
@@ -14,6 +14,8 @@ const layout = ref<LayoutResult | null>(null)
 const selectedNode = ref<GraphNode | null>(null)
 const errorMsg = ref('')
 const fileLabel = ref('')
+
+const playbackMode = ref<PlaybackMode>('preview')
 
 const totalDuration = () => workflow.value?.metadata.duration ?? 0
 const { currentTime, playing, speed, togglePlay, seek, toggleSpeed } = usePlayback(totalDuration)
@@ -138,9 +140,11 @@ const showInspector = computed(() => selectedNode.value !== null)
       :playing="playing"
       :speed="speed"
       :tasks="workflow.tasks"
+      :playback-mode="playbackMode"
       @seek="seek"
       @toggle-play="togglePlay"
       @toggle-speed="toggleSpeed"
+      @toggle-mode="playbackMode = playbackMode === 'preview' ? 'reveal' : 'preview'"
     />
 
     <!-- Main content -->
@@ -150,6 +154,7 @@ const showInspector = computed(() => selectedNode.value !== null)
         :layout="layout"
         :current-time="currentTime"
         :selected-node="selectedNode"
+        :playback-mode="playbackMode"
         :style="{ flex: 1 }"
         @select-node="(n: GraphNode | null) => selectedNode = n"
       />

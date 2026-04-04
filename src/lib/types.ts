@@ -90,3 +90,5 @@ export interface LayoutResult {
   edges: GraphEdge[]
   bounds: GraphBounds
 }
+
+export type PlaybackMode = 'preview' | 'reveal'

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import type { LayoutResult, GraphNode, EdgeSection } from '../lib/types'
+import type { LayoutResult, GraphNode, EdgeSection, PlaybackMode } from '../lib/types'
 import { theme, statusColors, statusBgColors, alpha } from '../lib/theme'
 import { getGraphBounds } from '../lib/graphLayout'
 
@@ -8,6 +8,7 @@ const props = defineProps<{
   layout: LayoutResult
   currentTime: number
   selectedNode: GraphNode | null
+  playbackMode: PlaybackMode
 }>()
 
 const emit = defineEmits<{
@@ -80,8 +81,22 @@ function isNodePast(node: GraphNode): boolean {
 }
 
 function nodeOpacity(node: GraphNode): number {
+  if (props.playbackMode === 'reveal') return 1
   if (isNodeFuture(node)) return 0.25
   return 1
+}
+
+function isNodeVisible(node: GraphNode): boolean {
+  if (props.playbackMode === 'preview') return true
+  return !isNodeFuture(node)
+}
+
+function isEdgeVisible(edge: { targets: string[]; activationTime: number }): boolean {
+  if (props.playbackMode === 'preview') return true
+  const targetId = edge.targets[0]
+  const targetNode = props.layout.nodes.find(n => n.id === targetId)
+  if (!targetNode) return true
+  return !isNodeFuture(targetNode)
 }
 
 function nodeColor(node: GraphNode): string {
@@ -173,9 +188,11 @@ const viewBoxStr = computed(() => {
     </defs>
 
     <!-- Edges -->
-    <g v-for="edge in layout.edges" :key="edge.id">
+    <g v-for="edge in layout.edges" :key="edge.id"
+      :style="{ transition: 'opacity 0.3s ease' }"
+    >
       <path
-        v-if="edge.sections"
+        v-if="edge.sections && isEdgeVisible(edge)"
         :d="edgePath(edge.sections)"
         fill="none"
         :stroke="isEdgeActive(edge) ? theme.accent : theme.border.default"
@@ -187,9 +204,10 @@ const viewBoxStr = computed(() => {
 
     <!-- Nodes -->
     <g v-for="node in layout.nodes" :key="node.id"
+      v-show="isNodeVisible(node)"
       :transform="`translate(${node.x}, ${node.y})`"
       :opacity="nodeOpacity(node)"
-      :style="{ cursor: (node.type === 'start' || node.type === 'end') ? 'default' : 'pointer' }"
+      :style="{ cursor: (node.type === 'start' || node.type === 'end') ? 'default' : 'pointer', transition: 'opacity 0.3s ease' }"
       @click="onNodeClick(node, $event)"
     >
       <!-- Start/End: circle -->
@@ -248,9 +266,10 @@ const viewBoxStr = computed(() => {
         </text>
         <!-- Child nodes inside compound -->
         <g v-if="node.children" v-for="child in node.children" :key="child.id"
+          v-show="isNodeVisible(child)"
           :transform="`translate(${child.x}, ${child.y})`"
           :opacity="nodeOpacity(child)"
-          :style="{ cursor: 'pointer' }"
+          :style="{ cursor: 'pointer', transition: 'opacity 0.3s ease' }"
           @click="onNodeClick(child, $event)"
         >
           <rect
