@@ -1,4 +1,4 @@
-# TaskViz
+# Visualizer
 
 CLI tool that reads a workflow execution log (JSONL) and generates a **self-contained interactive HTML report**. The report renders a directed acyclic graph (DAG) that automatically forks when tasks execute in parallel and joins when they converge — plus a scrubable playback timeline.
 
