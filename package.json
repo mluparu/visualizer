@@ -1,6 +1,6 @@
 {
   "name": "visualizer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CLI tool that reads a workflow orchestration log (JSONL) and generates a self-contained interactive HTML report with a directed graph visualization.",
   "type": "module",
   "repository": {
