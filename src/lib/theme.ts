@@ -63,46 +63,46 @@ const sharedTokens = {
 export const themePresets: Record<ThemeName, ThemeTokens> = {
   midnight: {
     bg: {
-      base: '#000000',
-      raised: '#0d0d14',
-      surface: '#141420',
-      overlay: '#1a1a28',
-      hover: '#22223a',
+      base: '#171717',
+      raised: '#1d1d1d',
+      surface: '#242424',
+      overlay: '#2b2b2b',
+      hover: '#323232',
     },
     fg: {
-      primary: '#e0e0e8',
-      secondary: '#9090a8',
-      dim: '#606078',
-      muted: '#44445c',
+      primary: '#f2f1ec',
+      secondary: '#ddd9ce',
+      dim: '#b2ac9f',
+      muted: '#827b70',
     },
     border: {
-      subtle: '#1e1e32',
-      default: '#2a2a44',
-      bright: '#3a3a58',
+      subtle: '#2f2f2f',
+      default: '#494949',
+      bright: '#726b60',
     },
-    accent: '#6c8cff',
+    accent: '#d4a24c',
     ...sharedTokens,
   },
   light: {
     bg: {
-      base: '#f8fafc',
-      raised: '#ffffff',
-      surface: '#eef2ff',
-      overlay: '#e2e8f0',
-      hover: '#dbeafe',
+      base: '#f2f1ec',
+      raised: '#f7f6f1',
+      surface: '#eae9e1',
+      overlay: '#e1ded4',
+      hover: '#d9d4c8',
     },
     fg: {
-      primary: '#0f172a',
-      secondary: '#334155',
-      dim: '#64748b',
-      muted: '#94a3b8',
+      primary: '#171717',
+      secondary: '#2f2c27',
+      dim: '#625d54',
+      muted: '#8b857a',
     },
     border: {
-      subtle: '#dbe4f0',
-      default: '#cbd5e1',
-      bright: '#94a3b8',
+      subtle: '#e2dfd4',
+      default: '#c3beb2',
+      bright: '#8b857a',
     },
-    accent: '#2563eb',
+    accent: '#854d0e',
     ...sharedTokens,
   },
   ocean: {
@@ -192,24 +192,40 @@ const defaultStatusBgColors: Record<TaskStatus, string> = {
   skipped: '#1a1a2e',
 }
 
+const midnightStatusColors: Record<TaskStatus, string> = {
+  completed: '#86c8aa',
+  failed: '#f2a3a3',
+  running: '#f2c66d',
+  pending: '#b8b1a3',
+  skipped: '#7c766b',
+}
+
+const midnightStatusBgColors: Record<TaskStatus, string> = {
+  completed: '#193127',
+  failed: '#3b1f1f',
+  running: '#3a2c12',
+  pending: '#242424',
+  skipped: '#1d1d1d',
+}
+
 const lightStatusColors: Record<TaskStatus, string> = {
-  completed: '#047857',
-  failed: '#b91c1c',
-  running: '#1d4ed8',
-  pending: '#475569',
-  skipped: '#64748b',
+  completed: '#2f6f55',
+  failed: '#b93838',
+  running: '#8a5a12',
+  pending: '#57534e',
+  skipped: '#78716c',
 }
 
 const lightStatusBgColors: Record<TaskStatus, string> = {
-  completed: '#d1fae5',
-  failed: '#fee2e2',
-  running: '#dbeafe',
-  pending: '#e2e8f0',
-  skipped: '#f1f5f9',
+  completed: '#dcecdf',
+  failed: '#f9e0e0',
+  running: '#f5e8c8',
+  pending: '#eae9e1',
+  skipped: '#f2f1ec',
 }
 
 const statusColorPresets: Record<ThemeName, Record<TaskStatus, string>> = {
-  midnight: { ...defaultStatusColors },
+  midnight: { ...midnightStatusColors },
   light: { ...lightStatusColors },
   ocean: { ...defaultStatusColors },
   forest: { ...defaultStatusColors },
@@ -217,7 +233,7 @@ const statusColorPresets: Record<ThemeName, Record<TaskStatus, string>> = {
 }
 
 const statusBgColorPresets: Record<ThemeName, Record<TaskStatus, string>> = {
-  midnight: { ...defaultStatusBgColors },
+  midnight: { ...midnightStatusBgColors },
   light: { ...lightStatusBgColors },
   ocean: { ...defaultStatusBgColors },
   forest: { ...defaultStatusBgColors },
@@ -225,8 +241,8 @@ const statusBgColorPresets: Record<ThemeName, Record<TaskStatus, string>> = {
 }
 
 const progressColorPresets: Record<ThemeName, string> = {
-  midnight: '#c2610a',
-  light: '#2563eb',
+  midnight: '#d4a24c',
+  light: '#854d0e',
   ocean: '#0ea5e9',
   forest: '#65a30d',
   sunset: '#ec4899',
@@ -291,6 +307,6 @@ export function mix(hex: string, otherHex: string, amount: number): string {
 }
 
 export function emphasize(hex: string, amount = 0.24): string {
-  const contrastTarget = currentThemeName.value === 'light' ? '#0f172a' : '#f8fafc'
+  const contrastTarget = theme.fg.primary
   return mix(hex, contrastTarget, amount)
 }
