@@ -7,4 +7,4 @@ export type {
   VisualizationEmbedProps as TaskVizEmbedProps,
 } from './lib/embedTypes'
 export type { ThemeName } from './lib/theme'
-export type { PlaybackMode } from './lib/types'
+export type { PlaybackMode, ViewportMode } from './lib/types'
