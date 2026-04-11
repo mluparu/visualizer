@@ -23,11 +23,14 @@ const svgRef = ref<SVGSVGElement | null>(null)
 const viewBox = ref<GraphBounds>({ x: 0, y: 0, width: 800, height: 600 })
 const isPanning = ref(false)
 const panStart = ref({ x: 0, y: 0, vbX: 0, vbY: 0 })
+const activePanTouchId = ref<number | null>(null)
 const followTarget = ref<GraphBounds | null>(null)
 const lastFollowBounds = ref<GraphBounds | null>(null)
 const followUserScale = ref(1)
 const followUserOffset = ref({ x: 0, y: 0 })
 let followFrameId: number | null = null
+let pinchStart: { distance: number, midpoint: { x: number, y: number }, viewBox: GraphBounds } | null = null
+let touchGestureRect: DOMRect | null = null
 
 const DEFAULT_FOLLOW_SMOOTHING = 0.1
 const FOLLOW_EPSILON = 0.45
@@ -310,6 +313,129 @@ function onMouseUp() {
   isPanning.value = false
 }
 
+function touchDistance(a: Touch, b: Touch): number {
+  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+}
+
+function touchMidpoint(a: Touch, b: Touch): { x: number, y: number } {
+  return {
+    x: (a.clientX + b.clientX) / 2,
+    y: (a.clientY + b.clientY) / 2,
+  }
+}
+
+function syncFollowAfterManualViewBoxChange(nextViewBox: GraphBounds, updateTarget = false) {
+  if (props.viewportMode !== 'follow') return
+  syncFollowAdjustmentsFromViewBox(nextViewBox, resolveFollowBounds())
+  if (updateTarget) {
+    applyViewBoxTarget(applyFollowAdjustments(resolveFollowBounds()), true)
+  }
+}
+
+function onTouchStart(e: TouchEvent) {
+  if (!svgRef.value) return
+  touchGestureRect = svgRef.value.getBoundingClientRect()
+
+  if (e.touches.length === 1) {
+    e.preventDefault()
+    const touch = e.touches[0]
+    activePanTouchId.value = touch.identifier
+    isPanning.value = true
+    panStart.value = { x: touch.clientX, y: touch.clientY, vbX: viewBox.value.x, vbY: viewBox.value.y }
+    pinchStart = null
+    return
+  }
+
+  if (e.touches.length === 2) {
+    e.preventDefault()
+    const [t0, t1] = [e.touches[0], e.touches[1]]
+    pinchStart = {
+      distance: Math.max(touchDistance(t0, t1), 1),
+      midpoint: touchMidpoint(t0, t1),
+      viewBox: { ...viewBox.value },
+    }
+    activePanTouchId.value = null
+    isPanning.value = false
+  }
+}
+
+function onTouchMove(e: TouchEvent) {
+  const rect = touchGestureRect ?? svgRef.value?.getBoundingClientRect()
+  if (!rect) return
+
+  if (e.touches.length === 2) {
+    e.preventDefault()
+    const [t0, t1] = [e.touches[0], e.touches[1]]
+    const currentDistance = Math.max(touchDistance(t0, t1), 1)
+    const currentMidpoint = touchMidpoint(t0, t1)
+    const start = pinchStart ?? {
+      distance: currentDistance,
+      midpoint: currentMidpoint,
+      viewBox: { ...viewBox.value },
+    }
+    pinchStart = start
+
+    const startMx = (start.midpoint.x - rect.left) / rect.width
+    const startMy = (start.midpoint.y - rect.top) / rect.height
+    const currentMx = (currentMidpoint.x - rect.left) / rect.width
+    const currentMy = (currentMidpoint.y - rect.top) / rect.height
+
+    const anchorX = start.viewBox.x + start.viewBox.width * startMx
+    const anchorY = start.viewBox.y + start.viewBox.height * startMy
+    const scale = start.distance / currentDistance
+    const width = Math.max(start.viewBox.width * scale, 1)
+    const height = Math.max(start.viewBox.height * scale, 1)
+    const nextViewBox = {
+      x: anchorX - width * currentMx,
+      y: anchorY - height * currentMy,
+      width,
+      height,
+    }
+
+    viewBox.value = nextViewBox
+    syncFollowAfterManualViewBoxChange(nextViewBox, true)
+    return
+  }
+
+  if (e.touches.length === 1 && activePanTouchId.value !== null) {
+    const touch = Array.from(e.touches).find(item => item.identifier === activePanTouchId.value)
+    if (!touch) return
+    e.preventDefault()
+
+    const dx = (touch.clientX - panStart.value.x) / rect.width * viewBox.value.width
+    const dy = (touch.clientY - panStart.value.y) / rect.height * viewBox.value.height
+    const nextViewBox = { ...viewBox.value, x: panStart.value.vbX - dx, y: panStart.value.vbY - dy }
+    viewBox.value = nextViewBox
+    syncFollowAfterManualViewBoxChange(nextViewBox)
+  }
+}
+
+function onTouchEnd(e: TouchEvent) {
+  if (e.touches.length === 0) {
+    onMouseUp()
+    activePanTouchId.value = null
+    pinchStart = null
+    touchGestureRect = null
+    return
+  }
+
+  if (e.touches.length === 1) {
+    e.preventDefault()
+    const touch = e.touches[0]
+    activePanTouchId.value = touch.identifier
+    isPanning.value = true
+    panStart.value = { x: touch.clientX, y: touch.clientY, vbX: viewBox.value.x, vbY: viewBox.value.y }
+    pinchStart = null
+  }
+}
+
+function onTouchCancel() {
+  onMouseUp()
+  activePanTouchId.value = null
+  pinchStart = null
+  touchGestureRect = null
+}
+
 function showsExecutionBorder(node: GraphNode): boolean {
   if (node.type !== 'task' || !node.status) return false
   if (node.status === 'pending' || node.status === 'skipped') return false
@@ -482,12 +608,17 @@ const viewBoxStr = computed(() => {
       :style="{
         width: '100%', height: '100%', background: theme.bg.base, cursor: isPanning ? 'grabbing' : 'grab',
         display: 'block',
+        touchAction: 'none',
       }"
       @wheel.prevent="onWheel"
       @mousedown="onMouseDown"
       @mousemove="onMouseMove"
       @mouseup="onMouseUp"
       @mouseleave="onMouseUp"
+      @touchstart="onTouchStart"
+      @touchmove="onTouchMove"
+      @touchend="onTouchEnd"
+      @touchcancel="onTouchCancel"
       @click="onBgClick"
     >
     <defs>
