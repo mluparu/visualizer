@@ -28,11 +28,14 @@ const followTarget = ref<GraphBounds | null>(null)
 const lastFollowBounds = ref<GraphBounds | null>(null)
 const followUserScale = ref(1)
 const followUserOffset = ref({ x: 0, y: 0 })
+const touchTapStart = ref<{ x: number, y: number } | null>(null)
+const touchDidMove = ref(false)
 let followFrameId: number | null = null
 let pinchStart: { distance: number, midpoint: { x: number, y: number }, viewBox: GraphBounds } | null = null
 let touchGestureRect: DOMRect | null = null
 
 const DEFAULT_FOLLOW_SMOOTHING = 0.1
+const TOUCH_TAP_THRESHOLD = 8
 const FOLLOW_EPSILON = 0.45
 const FOLLOW_MIN_WIDTH = 560
 const FOLLOW_MIN_HEIGHT = 360
@@ -342,6 +345,8 @@ function onTouchStart(e: TouchEvent) {
     activePanTouchId.value = touch.identifier
     isPanning.value = true
     panStart.value = { x: touch.clientX, y: touch.clientY, vbX: viewBox.value.x, vbY: viewBox.value.y }
+    touchTapStart.value = { x: touch.clientX, y: touch.clientY }
+    touchDidMove.value = false
     pinchStart = null
     return
   }
@@ -354,6 +359,8 @@ function onTouchStart(e: TouchEvent) {
       midpoint: touchMidpoint(t0, t1),
       viewBox: { ...viewBox.value },
     }
+    touchTapStart.value = null
+    touchDidMove.value = true
     activePanTouchId.value = null
     isPanning.value = false
   }
@@ -365,6 +372,7 @@ function onTouchMove(e: TouchEvent) {
 
   if (e.touches.length === 2) {
     e.preventDefault()
+    touchDidMove.value = true
     const [t0, t1] = [e.touches[0], e.touches[1]]
     const currentDistance = Math.max(touchDistance(t0, t1), 1)
     const currentMidpoint = touchMidpoint(t0, t1)
@@ -400,8 +408,17 @@ function onTouchMove(e: TouchEvent) {
   if (e.touches.length === 1 && activePanTouchId.value !== null) {
     const touch = Array.from(e.touches).find(item => item.identifier === activePanTouchId.value)
     if (!touch) return
-    e.preventDefault()
 
+    if (touchTapStart.value) {
+      const distance = Math.hypot(touch.clientX - touchTapStart.value.x, touch.clientY - touchTapStart.value.y)
+      if (distance > TOUCH_TAP_THRESHOLD) {
+        touchDidMove.value = true
+      }
+    }
+
+    if (!touchDidMove.value) return
+
+    e.preventDefault()
     const dx = (touch.clientX - panStart.value.x) / rect.width * viewBox.value.width
     const dy = (touch.clientY - panStart.value.y) / rect.height * viewBox.value.height
     const nextViewBox = { ...viewBox.value, x: panStart.value.vbX - dx, y: panStart.value.vbY - dy }
@@ -411,11 +428,22 @@ function onTouchMove(e: TouchEvent) {
 }
 
 function onTouchEnd(e: TouchEvent) {
+  const endedTouch = activePanTouchId.value === null
+    ? e.changedTouches[0]
+    : Array.from(e.changedTouches).find(item => item.identifier === activePanTouchId.value) ?? e.changedTouches[0]
+  const shouldSelectFromTap = e.touches.length === 0 && !touchDidMove.value && pinchStart === null && !!endedTouch
+
   if (e.touches.length === 0) {
     onMouseUp()
     activePanTouchId.value = null
     pinchStart = null
     touchGestureRect = null
+    touchTapStart.value = null
+    touchDidMove.value = false
+
+    if (shouldSelectFromTap && endedTouch) {
+      selectNodeFromTouch(endedTouch.clientX, endedTouch.clientY)
+    }
     return
   }
 
@@ -425,6 +453,7 @@ function onTouchEnd(e: TouchEvent) {
     activePanTouchId.value = touch.identifier
     isPanning.value = true
     panStart.value = { x: touch.clientX, y: touch.clientY, vbX: viewBox.value.x, vbY: viewBox.value.y }
+    touchTapStart.value = null
     pinchStart = null
   }
 }
@@ -434,6 +463,8 @@ function onTouchCancel() {
   activePanTouchId.value = null
   pinchStart = null
   touchGestureRect = null
+  touchTapStart.value = null
+  touchDidMove.value = false
 }
 
 function showsExecutionBorder(node: GraphNode): boolean {
@@ -547,6 +578,32 @@ function onBgClick() {
   emit('selectNode', null)
 }
 
+function findNodeById(nodeId: string): GraphNode | null {
+  for (const node of props.layout.nodes) {
+    if (node.id === nodeId) return node
+
+    const child = node.children?.find(item => item.id === nodeId)
+    if (child) return child
+  }
+
+  return null
+}
+
+function selectNodeFromTouch(clientX: number, clientY: number) {
+  const target = document.elementFromPoint(clientX, clientY)
+  const nodeElement = target?.closest?.('[data-node-id]') as Element | null | undefined
+  const nodeId = nodeElement?.getAttribute('data-node-id')
+
+  if (!nodeId) {
+    onBgClick()
+    return
+  }
+
+  const node = findNodeById(nodeId)
+  if (!node || node.type === 'start' || node.type === 'end') return
+  emit('selectNode', node)
+}
+
 function handleFitButton() {
   stopFollowing()
   fitView()
@@ -655,6 +712,7 @@ const viewBoxStr = computed(() => {
     <!-- Nodes -->
     <g v-for="node in layout.nodes" :key="node.id"
       v-show="isNodeVisible(node)"
+      :data-node-id="node.id"
       :transform="`translate(${node.x}, ${node.y})`"
       :opacity="nodeOpacity(node)"
       :style="{ cursor: (node.type === 'start' || node.type === 'end') ? 'default' : 'pointer', transition: 'opacity 0.3s ease' }"
@@ -742,6 +800,7 @@ const viewBoxStr = computed(() => {
         <!-- Child nodes inside compound -->
         <g v-if="node.children" v-for="child in node.children" :key="child.id"
           v-show="isNodeVisible(child)"
+          :data-node-id="child.id"
           :transform="`translate(${child.x}, ${child.y})`"
           :opacity="nodeOpacity(child)"
           :style="{ cursor: 'pointer', transition: 'opacity 0.3s ease' }"
